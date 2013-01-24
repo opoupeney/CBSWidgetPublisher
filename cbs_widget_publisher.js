@@ -4,7 +4,6 @@
 */
 
 function cbsWidgetPublisher( dataWidget ) {
-
-	
-
+	dataWidget.clearContent();
+	dataWidget.addContent( "Widget Publisher" );
 }
