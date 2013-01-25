@@ -61,6 +61,9 @@ CBSPublisher.prototype.parseItem=function( item, index ) {
 		}
 		this.gridData_level_1.push( row );
 	}
+	
+	this.gridColumns.push( {header: "", dataIndex: "caction"} );
+	
 	return nextIndex;
 }
 
@@ -71,7 +74,7 @@ CBSPublisher.prototype.setReportName=function( name ) {
 CBSPublisher.prototype.renderReport=function() {
 	var reportPanel = Ext.create('Ext.panel.Panel', {
 		title: this.reportName,
-    	width: "98%",
+    	width: 800,
 	    height: 500,
     	renderTo: this.wgt_placeolder_id,
 	    layout: {
