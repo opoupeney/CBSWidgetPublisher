@@ -39,6 +39,7 @@ function CBSPublisher(items, dataWidget, wgt_placeolder_id) {
 	this.wgt_placeolder_id = wgt_placeolder_id;
 	this.reportName = null;
 	this.gridColumns = new Array();
+	this.gridData_level_1 = new Array();
 	return this;
 }
 
@@ -49,7 +50,13 @@ CBSPublisher.prototype.parseItem=function( item, index ) {
 	if ( item.dimName == "CR" ) {
 		this.setReportName( item.c01 );
 	} else if ( item.dimName == "CT" ) {
-		this.gridColumns.push( {header: item.C02} );
+		this.gridColumns.push( {header: item.c02} );
+	} else if ( item.dimName == "1" ) {
+		var row = new Object();
+		for (var i=0; i<this.gridColumns.length; i++) {
+			row["c0"+(i+1)] = item["c0"+(i+1)];
+		}
+		this.gridData_level_1.push( row );
 	}
 	return nextIndex;
 }
@@ -73,7 +80,7 @@ CBSPublisher.prototype.renderReport=function() {
     		{
         		xtype: "grid",
 	        	columns: this.gridColumns,
-	    	    store: Ext.create("Ext.data.ArrayStore", {}),
+	    	    store: Ext.create("Ext.data.ArrayStore", { data: this.gridData_level_1 }),
     	    	flex: 1
     		}, {
         		xtype: "splitter"
