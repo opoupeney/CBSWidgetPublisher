@@ -57,7 +57,7 @@ CBSPublisher.prototype.parseItem=function( item, index ) {
 	} else if ( item.dimName == "1" ) {
 		var row = new Object();
 		for (var i=1; i<(this.gridFields_level_1.length+1); i++) {
-			row["c"+i] = (i<10) ? { item["c0"+i] : item["c"+i] };
+			row["c"+i] = (i<10) ? item["c0"+i] : item["c"+i];
 		}
 		this.gridData_level_1.push( row );
 	}
