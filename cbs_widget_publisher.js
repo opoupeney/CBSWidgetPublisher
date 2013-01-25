@@ -71,8 +71,8 @@ CBSPublisher.prototype.setReportName=function( name ) {
 CBSPublisher.prototype.renderReport=function() {
 	var reportPanel = Ext.create('Ext.panel.Panel', {
 		title: this.reportName,
-    	width: "99%",
-	    height: 400,
+    	width: "98%",
+	    height: 500,
     	renderTo: this.wgt_placeolder_id,
 	    layout: {
     	    type: "vbox",
