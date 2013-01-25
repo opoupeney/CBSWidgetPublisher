@@ -49,7 +49,7 @@ CBSPublisher.prototype.parseItem=function( item, index ) {
 	if ( item.dimName == "CR" ) {
 		this.setReportName( item.c01 );
 	} else if ( item.dimName == "CT" ) {
-		this.gridColumns.push( {header: item.C01} );
+		this.gridColumns.push( {header: item.C02} );
 	}
 	return nextIndex;
 }
