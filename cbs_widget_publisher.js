@@ -60,7 +60,7 @@ CBSPublisher.prototype.setReportName=function( name ) {
 CBSPublisher.prototype.renderReport=function() {
 	var reportPanel = Ext.create('Ext.panel.Panel', {
 		title: this.reportName,
-    	width: "100%",
+    	width: "99%",
 	    height: 400,
     	renderTo: this.wgt_placeolder_id,
 	    layout: {
