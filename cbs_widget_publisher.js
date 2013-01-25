@@ -51,8 +51,8 @@ CBSPublisher.prototype.parseItem=function( item, index ) {
 	if ( item.dimName == "CR" ) {
 		this.setReportName( item.c01 );
 	} else if ( item.dimName == "CT" ) {
-		this.gridColumns.push( {header: item.c02} );
 		var colIndex = this.gridFields_level_1.length;
+		this.gridColumns.push( {header: item.c02, dataIndex: "c"+(colIndex+1)} );
 		this.gridFields_level_1.push( {name: "c"+(colIndex+1)} );
 	} else if ( item.dimName == "1" ) {
 		var row = new Object();
