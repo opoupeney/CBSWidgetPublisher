@@ -83,7 +83,7 @@ CBSPublisher.prototype.renderReport=function() {
     		{
         		xtype: "grid",
 	        	columns: this.gridColumns,
-	    	    store: Ext.create("Ext.data.ArrayStore", { data: this.gridData_level_1 }),
+	    	    store: Ext.create("Ext.data.ArrayStore", { fields: this.gridFields_level_1, data: this.gridData_level_1 }),
     	    	flex: 1
     		}, {
         		xtype: "splitter"
