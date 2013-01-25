@@ -27,6 +27,7 @@ function cbsWidgetPublisher( dataWidget ) {
 					parseContinue = false;
 				}
 			}
+			publisher.gridColumns.push( {header: "", dataIndex: "caction"} );
 			publisher.renderReport();
 		}
 	});
@@ -61,8 +62,6 @@ CBSPublisher.prototype.parseItem=function( item, index ) {
 		}
 		this.gridData_level_1.push( row );
 	}
-	
-	this.gridColumns.push( {header: "", dataIndex: "caction"} );
 	
 	return nextIndex;
 }
