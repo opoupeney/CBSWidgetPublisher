@@ -39,6 +39,7 @@ function CBSPublisher(items, dataWidget, wgt_placeolder_id) {
 	this.wgt_placeolder_id = wgt_placeolder_id;
 	this.reportName = null;
 	this.gridColumns = new Array();
+	this.gridFields_level_1 = new Array();
 	this.gridData_level_1 = new Array();
 	return this;
 }
@@ -51,10 +52,12 @@ CBSPublisher.prototype.parseItem=function( item, index ) {
 		this.setReportName( item.c01 );
 	} else if ( item.dimName == "CT" ) {
 		this.gridColumns.push( {header: item.c02} );
+		var colIndex = this.gridFields_level_1.length;
+		this.gridFields_level_1.push( {name: "c"+(colIndex+1)} );
 	} else if ( item.dimName == "1" ) {
 		var row = new Object();
-		for (var i=0; i<this.gridColumns.length; i++) {
-			row["c0"+(i+1)] = item["c0"+(i+1)];
+		for (var i=1; i<(this.gridFields_level_1.length+1); i++) {
+			row["c"+i] = (i<10) ? { item["c0"+i] } : { item["c"+i] };
 		}
 		this.gridData_level_1.push( row );
 	}
