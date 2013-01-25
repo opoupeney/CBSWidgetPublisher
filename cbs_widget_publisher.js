@@ -26,6 +26,7 @@ function cbsWidgetPublisher( dataWidget ) {
 				}
 			}
 			dataWidget.addContent( publisher.reportName );
+		}
 	});
 	
 }
