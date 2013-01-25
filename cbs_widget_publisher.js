@@ -38,6 +38,7 @@ function CBSPublisher(items, dataWidget, wgt_placeolder_id) {
 	this.dataWidget = dataWidget;
 	this.wgt_placeolder_id = wgt_placeolder_id;
 	this.reportName = null;
+	this.gridColumns = new Array();
 	return this;
 }
 
@@ -48,7 +49,7 @@ CBSPublisher.prototype.parseItem=function( item, index ) {
 	if ( item.dimName == "CR" ) {
 		this.setReportName( item.c01 );
 	} else if ( item.dimName == "CT" ) {
-		// todo
+		this.gridColumns.push( {header: item.C01} );
 	}
 	return nextIndex;
 }
@@ -71,7 +72,7 @@ CBSPublisher.prototype.renderReport=function() {
 	    items: [
     		{
         		xtype: "grid",
-	        	columns: [{header: "Column One"}],
+	        	columns: this.gridColumns,
 	    	    store: Ext.create("Ext.data.ArrayStore", {}),
     	    	flex: 1
     		}, {
