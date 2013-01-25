@@ -59,29 +59,29 @@ CBSPublisher.prototype.setReportName=function( name ) {
 
 CBSPublisher.prototype.renderReport=function() {
 	var reportPanel = Ext.create('Ext.panel.Panel', {
-    	title: this.reportName',
+		title: this.reportName,
     	width: "100%",
 	    height: 400,
     	renderTo: this.wgt_placeolder_id,
 	    layout: {
-    	    type: 'vbox',
-        	align: 'stretch',
+    	    type: "vbox",
+        	align: "stretch",
 	        padding: 5
     	},
 	    items: [
     		{
-        		xtype: 'grid',
-	        	columns: [{header: 'Column One'}],
-	    	    store: Ext.create('Ext.data.ArrayStore', {}),
+        		xtype: "grid",
+	        	columns: [{header: "Column One"}],
+	    	    store: Ext.create("Ext.data.ArrayStore", {}),
     	    	flex: 1
     		}, {
-        		xtype: 'splitter'
+        		xtype: "splitter"
 		    }, {
-    	    	title: 'Details',
+    	    	title: "Details",
 	    	    bodyPadding: 5,
     	    	items: [{
-        	    	fieldLabel: 'Data item',
-	            	xtype: 'textfield'
+        	    	fieldLabel: "Data item",
+	            	xtype: "textfield"
 		        }],
     		    flex: 2
     		}
