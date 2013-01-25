@@ -10,7 +10,7 @@ function cbsWidgetPublisher( dataWidget ) {
 	dq.execute( null, function(dataSet) {
 		var buffer = dataSet.getData();
 		if ( buffer !== null && buffer["coResultVal"] !== null ) {
-			var items = buffer.coResultVal;
+			var items = buffer[0].coResultVal;
 			var publisher = new CBSPublisher(items);
 			
 			var parseContinue = true;
