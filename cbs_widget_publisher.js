@@ -60,7 +60,7 @@ CBSPublisher.prototype.parseItem=function( item, index ) {
 		for (var i=1; i<(this.gridFields_level_1.length+1); i++) {
 			row["c"+i] = (i<10) ? item["c0"+i] : item["c"+i];
 		}
-		if ( this.items[index+1] === "10" ) {
+		if ( this.items[index+1].dimName === "10" ) {
 			row.caction="yes";
 		}
 		this.gridData_level_1.push( row );
