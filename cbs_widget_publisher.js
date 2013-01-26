@@ -28,7 +28,7 @@ function cbsWidgetPublisher( dataWidget ) {
 				}
 			}
 			publisher.gridColumns.push( {header: "", dataIndex: "caction"} );
-			publisher.gridData_level_1.push( {name: "caction"} );
+			publisher.gridFields_level_1.push( {name: "caction"} );
 			publisher.renderReport();
 		}
 	});
