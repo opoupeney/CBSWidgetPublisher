@@ -49,16 +49,19 @@ CBSPublisher.prototype.type="CBSPublisher";
 
 CBSPublisher.prototype.parseItem=function( item, index ) {
 	var nextIndex = index+1;
-	if ( item.dimName == "CR" ) {
+	if ( item.dimName === "CR" ) {
 		this.setReportName( item.c01 );
-	} else if ( item.dimName == "CT" ) {
+	} else if ( item.dimName === "CT" ) {
 		var colIndex = this.gridFields_level_1.length;
 		this.gridColumns.push( {header: item.c02, dataIndex: "c"+(colIndex+1)} );
 		this.gridFields_level_1.push( {name: "c"+(colIndex+1)} );
-	} else if ( item.dimName == "1" ) {
+	} else if ( item.dimName === "1" ) {
 		var row = new Object();
 		for (var i=1; i<(this.gridFields_level_1.length+1); i++) {
 			row["c"+i] = (i<10) ? item["c0"+i] : item["c"+i];
+		}
+		if ( this.items[index+1] === "10 ) {
+			row.caction="yes";
 		}
 		this.gridData_level_1.push( row );
 	}
