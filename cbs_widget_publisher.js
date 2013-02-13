@@ -12,7 +12,7 @@
 function cbsWidgetPublisher( dataWidget ) {
 	dataWidget.clearContent();
 	var wgt_placeolder_id = Math.uuid( 10,10 );
-	dataWidget.addContent( "<div id=\"" + wgt_placeolder_id + "\" style=\"width:100%;height:420px;\"></div>" );
+	dataWidget.addContent( "<div id=\"" + wgt_placeolder_id + "\" style=\"width:100%;height:auto;\"></div>" );
 	
 	var dq = new DataQuery( "TestPublisher" );
 	dq.execute( null, function(dataSet) {
