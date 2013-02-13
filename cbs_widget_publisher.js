@@ -81,12 +81,10 @@ function CBSPublisher(items, dataWidget, wgt_placeolder_id) {
 		this.gridsOrFormsLevel_2.reportName_10: String
 		this.gridsOrFormsLevel_2.gridColumns_10: Array of {header, dataIndex}
 		this.gridsOrFormsLevel_2.gridFields_10: Array of {name}
-		this.gridsOrFormsLevel_2.gridData_10: Array of {parentIndex, row}, where parentIndex = first level table row index
+		this.gridsOrFormsLevel_2.gridData_10: Array of {parentIndex, row}
 		this.gridsOrFormsLevel_2.formData_10: Array of {parentIndex, label, data}
 		
 		this.gridsOrFormsLevel_2.reportName_11, 12, 13... etc.
-		
-		TODO: use item.id as parentIndex, this id must be added as a hidden column in first level table
 	*/
 	
 	// temporary variable mapping the second and first levels data
@@ -122,30 +120,37 @@ CBSPublisher.prototype.parseItem=function( item, index ) {
 	// FIRST LEVEL - Main Grid
 	else if ( item.dimName === "CR" ) {
 		this.setReportName( item.c01 );
+		
+		// ID column - used to map the first & second levels
+		this.gridColumns.push( {header: "row_id", dataIndex: "row_id", hidden: true} );
+		this.gridFields_level_1.push( {name: "row_id"} );
 	}
 	else if ( item.dimName === "CT" ) {
 		var colIndex = this.gridFields_level_1.length;
 		
-		if (colIndex == 1)// TODO: find the column size dynamically
-			this.gridColumns.push( {header: item.c02, dataIndex: "c"+(colIndex+1), flex: 1} );
+		if (colIndex == 2)// TODO: find the column size dynamically
+			this.gridColumns.push( {header: item.c02, dataIndex: "c"+colIndex, flex: 1} );
 		else
-			this.gridColumns.push( {header: item.c02, dataIndex: "c"+(colIndex+1)} );
+			this.gridColumns.push( {header: item.c02, dataIndex: "c"+colIndex} );
 			
-		this.gridFields_level_1.push( {name: "c"+(colIndex+1)} );
+		this.gridFields_level_1.push( {name: "c"+colIndex} );
 	}
 	else if ( item.dimName === "1" ) {
 		var row = new Object();
-		for (var i=1; i<(this.gridFields_level_1.length+1); i++) {
+		row.row_id = item.id;
+		
+		for (var i=1; i<this.gridFields_level_1.length; i++) {
 			row["c"+i] = (i<10) ? item["c0"+i] : item["c"+i];
 		}
-		if (this.items[index+1].dimName.indexOf("1") === 0 && this.items[index+1].dimName.length > 1 ) {
+		
+		if (this.items[index+1].dimName.indexOf("1") === 0 && this.items[index+1].dimName.length > 1 )
 			row.caction = "<img src=\"images/studio/bullet/dfs_search_sel.png\" />";
-		} else {
+		else
 			row.caction="";
-		}
+		
 		this.gridData_level_1.push( row );
 		
-		this.lastParentIndex = this.gridData_level_1.length - 1;// last possible parent for the second level rows - TODO: must be item.id
+		this.lastParentIndex = row.row_id;// last possible parent for the second level rows
 	}
 	// FIRST & SECOND LEVELS - Charts
 	else if ( item.dimName === "D09" ) {
@@ -280,7 +285,7 @@ CBSPublisher.prototype.renderReport=function() {
     	flex: 1,
     	listeners: {
 	    	itemclick: function(grid, record, item, index, e) {
-	    		cbsPublisher_instance.renderTab(index, this, this.ownerCt);
+	    		cbsPublisher_instance.renderTab(record.get('row_id'), this, this.ownerCt);
 	    	}
     	}
 	});
