@@ -42,6 +42,7 @@ function cbsWidgetPublisher( dataWidget ) {
 }
 
 function CBSPublisher(items, dataWidget, wgt_placeolder_id) {
+	// general data
 	this.items = items;
 	this.dataWidget = dataWidget;
 	this.wgt_placeolder_id = wgt_placeolder_id;
@@ -50,13 +51,30 @@ function CBSPublisher(items, dataWidget, wgt_placeolder_id) {
 	this.normalFormLevel_0 = new Array();// Array of {label, data}
 	this.collapsedFormLevel_0 = new Array();// Array of {label, data}
 	
-	// first level
+	// first level - grid
 	this.reportName = null;
 	this.gridColumns = new Array();
 	this.gridFields_level_1 = new Array();
 	this.gridData_level_1 = new Array();
 	
-	// second level
+	// first level - charts
+	this.chartsLevel_0 = new Object();
+	this.chartsLevel_0.reportName = null;
+	/*
+	Dynamically created properties:
+		this.chartsLevel_0.chart_[parentIndex].[chartName].pie: Boolean (true = pie, false = line)
+		this.chartsLevel_0.chart_[parentIndex].[chartName].label: String
+		this.chartsLevel_0.chart_[parentIndex].[chartName].graphType: String
+		this.chartsLevel_0.chart_[parentIndex].[chartName].series: Array of {c01, c02, c03}
+		
+		chartName - PA, PB..., LA, LB...
+	*/
+	
+	// second level - charts
+	this.chartsLevel_1 = new Object();
+	this.chartsLevel_1.reportName = null;
+	
+	// second level - tabs
 	this.gridsOrFormsLevel_2 = new Object();
 	/*
 	Dynamically created properties:
@@ -70,22 +88,27 @@ function CBSPublisher(items, dataWidget, wgt_placeolder_id) {
 		
 		TODO: use item.id as parentIndex, this id must be added as a hidden column in first level table
 	*/
-	this.lastParentIndex = 0;// temporary variable mapping the second and first levels data
 	
+	// temporary variable mapping the second and first levels data
+	this.lastParentIndex = 0;
+	
+	// initial blank panel for the second level
 	this.initialDetailsPanelId = "blankPanel";
-	this.initialDetailsPanel = {
+	this.initialDetailsPanelDef = {
     	itemId: this.initialDetailsPanelId,
     	title: "Details",
 	    bodyPadding: 5,
     	flex: 1
 	};
 	
+	// charts panel id
+	this.chartsPanelId = "chartsPanel";
+	
 	return this;
 }
 
 CBSPublisher.prototype.type="CBSPublisher";
 
-// TODO: parseItem() code will be slightly optimized to eliminate small duplication, although it's not critical
 CBSPublisher.prototype.parseItem=function( item, index ) {
 	var nextIndex = index+1;
 	
@@ -123,6 +146,41 @@ CBSPublisher.prototype.parseItem=function( item, index ) {
 		this.gridData_level_1.push( row );
 		
 		this.lastParentIndex = this.gridData_level_1.length - 1;// last possible parent for the second level rows - TODO: must be item.id
+	}
+	// FIRST & SECOND LEVELS - Charts
+	else if ( item.dimName === "D09" ) {
+		this.chartsLevel_0.reportName = item.c01;
+	}
+	else if ( item.dimName === "D19" ) {
+		this.chartsLevel_1.reportName = item.c01;
+	}
+	else if (item.dimName === "09" || item.dimName === "19") {
+		var levelIdx = item.dimName.substring(0, 1);
+		var parentIndex = (levelIdx === "0") ? 0 : this.lastParentIndex;
+		
+		if (this["chartsLevel_" + levelIdx]["chart_" + parentIndex] == undefined)
+			this["chartsLevel_" + levelIdx]["chart_" + parentIndex] = new Object();
+		
+		if (this["chartsLevel_" + levelIdx]["chart_" + parentIndex]["chart_" + item.c05] == undefined)
+			this["chartsLevel_" + levelIdx]["chart_" + parentIndex]["chart_" + item.c05] = new Object();
+		
+		var currentChart = this["chartsLevel_" + levelIdx]["chart_" + parentIndex]["chart_" + item.c05];
+		
+		if (item.c05.indexOf("P") === 0)
+			currentChart.pie = true;
+		else
+			currentChart.pie = false;
+		
+		if (item.c01 === "label")
+			currentChart.label = item.c02;
+		else if (item.c01 === "graphType")
+			currentChart.graphType = item.c02;
+		else {
+			if (currentChart.series == undefined)
+				currentChart.series = new Array();
+
+			currentChart.series.push({ c01: item.c01, c02: item.c02, c03: item.c03 });
+		}
 	}
 	// SECOND LEVEL - Tabs
 	else if ( item.dimName.indexOf("D1") === 0 ) {
@@ -171,7 +229,7 @@ CBSPublisher.prototype.setReportName=function( name ) {
 }
 
 CBSPublisher.prototype.renderReport=function() {
-	//console.log(this);
+	console.log(this);
 	var cbsPublisher_instance = this;
 	var items = new Array();
 	
@@ -229,14 +287,37 @@ CBSPublisher.prototype.renderReport=function() {
 	
 	items.push({ xtype: "splitter" });// splitter between the levels
 	
-	// initial blank panel for the second level
-	items.push( this.initialDetailsPanel );
+	// first level charts
+	var charts = this.buildCharts(0, 0);
+	var chartPanel = null;
+	if (charts.length > 0) {
+		var chartItems = new Array();
+		for (var i = 0; i < charts.length; i++) {
+			chartItems.push( charts[i] );
+		}
+		
+		var chartsPanelDef = {
+	    	itemId: this.chartsPanelId,
+		    bodyPadding: 5,
+	    	flex: 1,
+	    	autoScroll: true,//overflowX: "auto", overflowY: "auto",
+	    	items: chartItems,
+	    	layout: {
+	    	    type: "hbox"/*,
+	        	align: "stretch"*/
+	    	},
+		};
+		items.push(chartsPanelDef);
+	}
+	
+	items.push({ xtype: "splitter" });// splitter between the levels
+	items.push( this.initialDetailsPanelDef );// initial blank panel for the second level
 	
 	// main panel
 	var reportPanel = Ext.create('Ext.panel.Panel', {
 		title: this.reportName,
-    	width: 700,
-	    height: 600,
+    	width: 1100,
+	    height: 800,
     	renderTo: this.wgt_placeolder_id,
 	    layout: {
     	    type: "vbox",
@@ -257,6 +338,7 @@ CBSPublisher.prototype.renderTab=function(parentIndex, firstLevelGrid, container
 		var parseContinue = true;
 		var items = new Array();
 		
+		// tabs: grids & forms
 		while (parseContinue) {
 			if (this.gridsOrFormsLevel_2["reportName_1" + tabIndex]) {
 				if (this.gridsOrFormsLevel_2["gridData_1" + tabIndex]) {// if it was defined, it's a table data
@@ -306,6 +388,27 @@ CBSPublisher.prototype.renderTab=function(parentIndex, firstLevelGrid, container
 			tabIndex++;
 		}
 		
+		// second level charts
+		var charts = this.buildCharts(1, parentIndex);
+		if (charts.length > 0) {
+			var chartsContainer = container.getComponent(this.chartsPanelId);
+			
+			// first, remove the old second level charts
+			for (var i = 0; i < chartsContainer.items.length; i++) {
+				var oldChart = chartsContainer.getComponent( this.createChartId(1, i) );
+				if (oldChart)
+					chartsContainer.remove(oldChart);
+			}
+			
+			// and now, add new second level charts
+			for (var i = 0; i < charts.length; i++) {
+				chartsContainer.add( charts[i] );
+			}
+			
+			chartsContainer.doLayout();
+		}
+		
+		// build the Tab container
 		var tabsId = "secondLevelTab";
 		var container_level_2 = null;
 		
@@ -319,7 +422,7 @@ CBSPublisher.prototype.renderTab=function(parentIndex, firstLevelGrid, container
 			});
 		}
 		else {
-			container_level_2 = Ext.create('Ext.panel.Panel', this.initialDetailsPanel);// initial blank panel
+			container_level_2 = Ext.create('Ext.panel.Panel', this.initialDetailsPanelDef);// initial blank panel
 		}
 		
 		// remove initial blank panel if exists
@@ -338,4 +441,133 @@ CBSPublisher.prototype.renderTab=function(parentIndex, firstLevelGrid, container
 		var lastSelectedRow = firstLevelGrid.getSelectionModel().getLastSelected().index;
 		firstLevelGrid.getView().focusRow( lastSelectedRow );
 	}
+}
+
+CBSPublisher.prototype.buildCharts=function(levelIndex, parentIndex) {
+	var currentLevelChartsDef = this["chartsLevel_" + levelIndex]["chart_" + parentIndex];
+	var charts = new Array();
+	
+	if (currentLevelChartsDef) {
+		// enumerate current level charts definitions
+		var indexWithinLevel = 0;
+		for (var propName in currentLevelChartsDef) {
+			if ( currentLevelChartsDef.hasOwnProperty(propName) ) {
+				var chartDef = currentLevelChartsDef[propName];
+				chartDef.itemId = this.createChartId(levelIndex, indexWithinLevel++);
+				
+				// build the chart component
+				if ( chartDef.pie ) {// pie chart
+					var pieChart = this.buildPieChart(chartDef);
+					charts.push(pieChart);
+				}
+				else {//line chart
+					var lineChart = this.buildLineChart(chartDef);
+					charts.push(lineChart);
+				}
+			}
+		}
+	}
+	
+	return charts;
+}
+
+CBSPublisher.prototype.createChartId=function(levelIndex, indexWithinLevel) {
+	return 'cbsChart_' + levelIndex + '_' + indexWithinLevel;
+}
+
+CBSPublisher.prototype.buildPieChart=function(chartDef) {
+	var data = new Array();
+	for (var i = 0; i < chartDef.series.length; i++) {
+		data.push({ 'name': chartDef.series[i].c02, 'data': parseInt(chartDef.series[i].c03) });
+	}
+	
+	var store = Ext.create('Ext.data.JsonStore', {
+	    fields: ['name', 'data'],
+	    data: data
+	});
+	
+	var pieChart = Ext.create('Ext.chart.Chart', {
+		itemId: chartDef.itemId,
+		width: 200,   height: 170,  animate: true, insetPadding: 25, 
+	    store: store, theme: 'Base:gradients', shadow: true,
+	    legend: { position: 'bottom' },
+	    series: [{
+	        type: 'pie', angleField: 'data', showInLegend: true, 
+	        tips: {
+	            trackMouse: true,  width: 200, height: 28,
+	            renderer: function(storeItem, item) {// calculate and display percentage on hover
+	                var total = 0;
+	                store.each(function(rec) { total += rec.get('data'); });
+	                this.setTitle(storeItem.get('name') + ': ' + Math.round(storeItem.get('data') / total * 100) + '%');
+	            }
+	        },
+	        theme: 'Base:gradients',
+		    shadow: true,
+	        highlight: { segment: {margin: 20 } },
+	        label    : {
+	        	field: 'data', display: 'rotate', contrast: true,
+	        	font: "12px 'Lucida Grande', 'Lucida Sans Unicode', Verdana, Arial, Helvetica, sans-serif",
+	        	renderer: function(storeItem, item) {// calculate percentage
+	        		var total = 0;
+	                store.each(function(rec) { total += rec.get('data'); });
+	                return Math.round(storeItem / total * 100) + '%';
+	            }
+	        }
+	    }]
+	});
+	
+	return pieChart;
+}
+
+CBSPublisher.prototype.buildLineChart=function(chartDef) {
+	var fields = new Array();
+	var fieldsVertAxe = new Array();
+	var data = new Array();
+	var axes = new Array();
+	var series = new Array();
+	
+	fields.push('name');
+	
+	for (var i = 0; i < chartDef.series.length; i++) {
+		if ($.inArray(chartDef.series[i].c02, fields) === -1) {
+			fields.push( chartDef.series[i].c02 );
+			fieldsVertAxe.push( chartDef.series[i].c02 );
+			
+			series.push({ type: 'line', axis: 'left', xField: 'name', yField: chartDef.series[i].c02, 
+				highlight: {size: 7, radius: 7}, markerConfig: {type: 'cross', size: 4, radius: 4, 'stroke-width': 0} });
+		}
+		
+		var dataItem = new Object();
+		if (chartDef.graphType === 'date')
+			dataItem.name = new Date(chartDef.series[i].c01.replace( /(\d{2}).(\d{2}).(\d{4})/, "$2/$1/$3")).getTime();
+		else if (chartDef.graphType === 'number')
+			dataItem.name = parseFloat(chartDef.series[i].c01);
+		dataItem[ chartDef.series[i].c02 ] = parseFloat( chartDef.series[i].c03 );
+		data.push(dataItem);
+	}
+	
+	axes.push({ type: 'Numeric', position: 'left', fields: fieldsVertAxe, label: {renderer: Ext.util.Format.numberRenderer('0,0')}, grid: true, hidden: false });
+	if (chartDef.graphType === 'date')
+		axes.push({ type: 'Time', dateFormat: 'Y M d', position: 'bottom', fields: ['name'], grid: false, hidden: false, label: {rotate: {degrees: 315}} });
+	else if (chartDef.graphType === 'number')
+		axes.push({ type: 'Numeric', position: 'bottom', fields: ['name'], grid: true, hidden: false });
+	
+	var store = Ext.create('Ext.data.JsonStore', {
+		fields: fields,
+	    data: data
+	});
+	
+	var lineChart = Ext.create('Ext.chart.Chart', {
+		itemId: chartDef.itemId,
+		xtype: 'chart',
+		style: 'background:#fff',
+	    width: 200, height: 170,
+	    legend: { position: 'bottom' },
+	    animate: true,
+	    store: store,
+	    axes: axes,
+	    series: series
+	});
+	
+	return lineChart;
 }
