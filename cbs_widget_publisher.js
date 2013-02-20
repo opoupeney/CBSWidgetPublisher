@@ -10,11 +10,11 @@
  */
 
 function cbsWidgetPublisher(dataWidget, inPopup, wsParams, popupCallback, periodTitleSelected, doNotClearContent, cbs_publisher_instance) {
-	//console.log(wsParams);
 	// DataQuery settings
 	cbsPublisherSettings = new CBSPublisherSettings(dataWidget);
 	if (wsParams === undefined || wsParams === null)
 		wsParams = cbsPublisherSettings;
+	console.log(wsParams);
 		
 	var wgt_placeolder_id = (cbs_publisher_instance !== undefined) ? cbs_publisher_instance.wgt_placeolder_id : null;
 	if (doNotClearContent !== true) {
@@ -36,7 +36,7 @@ function cbsPublisherDataQueryExecute(dataWidget, wgt_placeolder_id, inPopup, ws
 	dq.execute( null, function(dataSet) {
 		var buffer = dataSet.getData();
 		if ( buffer !== null && buffer["coResultVal"] !== null ) {
-			var items = buffer.coResultVal;
+			var items = buffer.coResultVal;//var items = buffer[0].coResultVal;
 			
 			var publisher = cbs_publisher_instance;
 			if (doNotClearContent !== true) {
@@ -161,7 +161,7 @@ CBSPublisher.prototype.parseItem=function( item, index ) {
 				if (row.caction == undefined || row.caction == null) {
 					row.caction = "";
 				}
-				row.caction = row.caction + "<img src=\"http://localhost:8080/RestFixture/images/" + wsParamsArray[0] + ".png\" title=\"" + wsParamsArray[1] +
+				row.caction = row.caction + "<img src=\"http://88.191.129.143/RestFixture/images/" + wsParamsArray[0] + ".png\" title=\"" + wsParamsArray[1] +
 					"\" onclick=\"javascript:cbsWidgetPublisherInPopup('" + popupIconDef + "')\"/>";
 			};
 			
@@ -269,7 +269,7 @@ CBSPublisher.prototype.parseItem=function( item, index ) {
 		
 		// add a data to the icon column
 		if (this.gridColumns[2] !== undefined && this.gridColumns[2].dataIndex === 'rep_icon') {
-			row.rep_icon = "<img src=\"http://localhost:8080/RestFixture/images/" + item.img + ".png\" />";
+			row.rep_icon = "<img src=\"http://88.191.129.143/RestFixture/images/" + item.img + ".png\" />";
 		}
 		
 		row.long_descr = item.c16;// add a data to the tooltip column
