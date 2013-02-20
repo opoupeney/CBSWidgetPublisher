@@ -9,17 +9,39 @@
  * 2) Probably, it makes sense to add a 'PagingToolbar' but anyway, all the data are downloading in one request. 
  */
 
-function cbsWidgetPublisher( dataWidget ) {
-	dataWidget.clearContent();
-	var wgt_placeolder_id = Math.uuid( 10,10 );
-	dataWidget.addContent( "<div id=\"" + wgt_placeolder_id + "\" style=\"width:100%;height:auto;\"></div>" );
+function cbsWidgetPublisher(dataWidget, inPopup, wsParams, popupCallback, periodTitleSelected, doNotClearContent, cbs_publisher_instance) {
+	//console.log(wsParams);
 	
+	var wgt_placeolder_id = (cbs_publisher_instance !== undefined) ? cbs_publisher_instance.wgt_placeolder_id : null;
+	if (doNotClearContent !== true) {
+		dataWidget.clearContent();
+		wgt_placeolder_id = Math.uuid( 10,10 );
+		dataWidget.addContent( "<div id=\"" + wgt_placeolder_id + "\" style=\"width:100%;height:auto;\"></div>" );
+	}
+	
+	inPopup = (inPopup === true) ? true : false;
+	cbsPublisherDataQueryExecute(dataWidget, wgt_placeolder_id, inPopup, wsParams, popupCallback, periodTitleSelected, doNotClearContent, cbs_publisher_instance);
+}
+
+function cbsPublisherDataQueryExecute(dataWidget, wgt_placeolder_id, inPopup, wsParams, popupCallback, periodTitleSelected, doNotClearContent, cbs_publisher_instance) {
 	var dq = new DataQuery( "TestPublisher" );
+	
+	if (wsParams !== undefined && wsParams !== null)
+		dq.setParameters(wsParams);
+	
 	dq.execute( null, function(dataSet) {
 		var buffer = dataSet.getData();
 		if ( buffer !== null && buffer["coResultVal"] !== null ) {
 			var items = buffer[0].coResultVal;
-			var publisher = new CBSPublisher(items, dataWidget, wgt_placeolder_id);
+			
+			var publisher = cbs_publisher_instance;
+			if (doNotClearContent !== true) {
+				publisher = new CBSPublisher(items, dataWidget, wgt_placeolder_id, inPopup, periodTitleSelected);
+			}
+			else if (doNotClearContent === true) {
+				publisher.init(items, dataWidget, wgt_placeolder_id, inPopup, periodTitleSelected);
+			}
+			publisher.doNotClearContent = doNotClearContent;
 			
 			var parseContinue = true;
 			var parseIndex = 0;
@@ -35,27 +57,48 @@ function cbsWidgetPublisher( dataWidget ) {
 			}
 			publisher.gridColumns.push( {header: "", dataIndex: "caction", width: 30} );
 			publisher.gridFields_level_1.push( {name: "caction"} );
-			publisher.renderReport();
+			
+			if (doNotClearContent === true) {
+				publisher.refreshReport();
+			}
+			else {
+				var reportItems = publisher.renderReport();
+				
+				if (popupCallback)
+					popupCallback(reportItems, publisher);	
+			}
 		}
 	});
-	
 }
 
-function CBSPublisher(items, dataWidget, wgt_placeolder_id) {
+function CBSPublisher(items, dataWidget, wgt_placeolder_id, inPopup, periodTitleSelected) {
+	this.init(items, dataWidget, wgt_placeolder_id, inPopup, periodTitleSelected);
+	return this;
+}
+
+CBSPublisher.prototype.init=function(items, dataWidget, wgt_placeolder_id, inPopup, periodTitleSelected) {
 	// general data
 	this.items = items;
 	this.dataWidget = dataWidget;
 	this.wgt_placeolder_id = wgt_placeolder_id;
+	this.inPopup = inPopup;
+	this.doNotClearContent = false;
 	
 	// zero level
+	this.error = new Object();
 	this.normalFormLevel_0 = new Array();// Array of {label, data}
 	this.collapsedFormLevel_0 = new Array();// Array of {label, data}
 	
 	// first level - grid
 	this.reportName = null;
+	this.isItTree = false;
 	this.gridColumns = new Array();
 	this.gridFields_level_1 = new Array();
 	this.gridData_level_1 = new Array();
+	
+	// first level - dimension links
+	this.dimensionLinks = new Array();
+	this.periodTitleSelected = periodTitleSelected;
 	
 	// first level - charts
 	this.chartsLevel_0 = new Object();
@@ -90,19 +133,8 @@ function CBSPublisher(items, dataWidget, wgt_placeolder_id) {
 	// temporary variable mapping the second and first levels data
 	this.lastParentIndex = 0;
 	
-	// initial blank panel for the second level
-	this.initialDetailsPanelId = "blankPanel";
-	this.initialDetailsPanelDef = {
-    	itemId: this.initialDetailsPanelId,
-    	title: "Details",
-	    bodyPadding: 5,
-    	flex: 1
-	};
-	
 	// charts panel id
 	this.chartsPanelId = "chartsPanel";
-	
-	return this;
 }
 
 CBSPublisher.prototype.type="CBSPublisher";
@@ -110,8 +142,42 @@ CBSPublisher.prototype.type="CBSPublisher";
 CBSPublisher.prototype.parseItem=function( item, index ) {
 	var nextIndex = index+1;
 	
+	// function to add the data for the "popup icon" - used later when parsing...
+	var buildPopupLink = function(item, row) {
+		if (item.c19 || item.c20) {
+			var firstPopupIcon = item.c19;
+			var secondPopupIcon = item.c20;
+			
+			var addPopupIcon = function(popupIconDef) {
+				if (popupIconDef == undefined || popupIconDef == null)
+					return;
+				
+				var wsParamsArray = popupIconDef.split(';');
+				
+				if (row.caction == undefined || row.caction == null) {
+					row.caction = "";
+				}
+				row.caction = row.caction + "<img src=\"http://localhost:8080/RestFixture/images/" + wsParamsArray[0] + ".png\" title=\"" + wsParamsArray[1] +
+					"\" onclick=\"javascript:cbsWidgetPublisherInPopup('" + popupIconDef + "')\"/>";
+			};
+			
+			if (firstPopupIcon !== undefined)
+				addPopupIcon(firstPopupIcon);
+			
+			if (secondPopupIcon !== undefined)
+				addPopupIcon(secondPopupIcon);
+		}
+	};
+	
+	// there is an ERROR
+	if ( item.dimName === "-E" ) {
+		this.error.exists = true;
+		this.error.code = item.c01;
+		this.error.description = item.c02;
+		this.error.explanation = item.c03;
+	}
 	// ZERO LEVEL - General forms
-	if ( item.dimName === "0" ) {
+	else if ( item.dimName === "0" ) {
 		this.normalFormLevel_0.push({ label: item.c02, data: item.c03 });
 	}
 	else if ( item.dimName === "-6" ) {
@@ -121,34 +187,92 @@ CBSPublisher.prototype.parseItem=function( item, index ) {
 	else if ( item.dimName === "CR" ) {
 		this.setReportName( item.c01 );
 		
+		this.isItTree = (item.c13 == 'N') ? true : false;// is it Tree?
+		
 		// ID column - used to map the first & second levels
 		this.gridColumns.push( {header: "row_id", dataIndex: "row_id", hidden: true} );
 		this.gridFields_level_1.push( {name: "row_id"} );
+		
+		// add a column for the tooltip
+		this.gridColumns.push( {header: "Long Description", dataIndex: "long_descr", hidden: true} );
+		this.gridFields_level_1.push( {name: "long_descr"} );
+		
+		// add or not the icon column
+		if ( item.c04 === 'Y' ) {
+			this.gridColumns.push( {header: "", dataIndex: "rep_icon", width: 30} );
+			this.gridFields_level_1.push( {name: "rep_icon"} );
+		}
 	}
 	else if ( item.dimName === "CT" ) {
-		var colIndex = this.gridFields_level_1.length;
+		var colIndex = this.gridFields_level_1.length - 1;// minus 1, because we always have 2 columns: row_id & long_descr
+		if (this.gridColumns[2] !== undefined && this.gridColumns[2].dataIndex === 'rep_icon')// there is already rep_icon column
+			colIndex = colIndex - 1;
 		
-		if (colIndex == 2)// TODO: find the column size dynamically
-			this.gridColumns.push( {header: item.c02, dataIndex: "c"+colIndex, flex: 1} );
+		// renderer to display the Tool-tip
+		var columnRenderer = function(value, meta, record) {
+            meta.tdAttr = 'data-qtip="' + record.data.long_descr + '"';
+            return value;
+        };
+        
+		if (colIndex === 2)// TODO: find the column size dynamically
+			this.gridColumns.push( {header: item.c02, dataIndex: "c"+colIndex, flex: 1, renderer: columnRenderer} );
 		else
-			this.gridColumns.push( {header: item.c02, dataIndex: "c"+colIndex} );
+			this.gridColumns.push( {header: item.c02, dataIndex: "c"+colIndex, renderer: columnRenderer} );
 			
-		this.gridFields_level_1.push( {name: "c"+colIndex} );
+		this.gridFields_level_1.push( {name: "c"+colIndex} );	
 	}
-	else if ( item.dimName === "1" ) {
+	else if ( item.dimName === "-0" ) {// dimension links
+		// preparing the WS parameters JSON object
+		var wsParamsJsonObj = new Object();
+		
+		wsParamsJsonObj.usr = 'mp';
+		wsParamsJsonObj.lng = 'en';
+		wsParamsJsonObj.roles = 'r';
+		wsParamsJsonObj.sheetname = item.c03;
+		wsParamsJsonObj.client = item.c04;
+		//var report = item.c05;// for the future - to say that this is a publisher report
+		
+		// parameters 'p1'...'p5'
+		for (var i = 6; i < 11; i++) {
+			var nextP = (i<10) ? item["c0"+i] : item["c"+i];
+			if (nextP !== undefined)
+				wsParamsJsonObj["p" + (i-5)] = nextP;
+		}
+		
+		this.dimensionLinks.push({ title: item.c02, period: item.c01, wsParams: wsParamsJsonObj });
+	}
+	else if (item.dimName === "1" || item.dimName === "2" || item.dimName === "3") {
 		var row = new Object();
 		row.row_id = item.id;
 		
+		// main data columns
 		for (var i=1; i<this.gridFields_level_1.length; i++) {
 			row["c"+i] = (i<10) ? item["c0"+i] : item["c"+i];
+			if (i == 1 && item.dimName == "2")
+				row["c"+i] = "=> " + row["c"+i];
+			else if (i == 1 && item.dimName == "3")
+				row["c"+i] = "==> " + row["c"+i];
 		}
 		
-		if (this.items[index+1].dimName.indexOf("1") === 0 && this.items[index+1].dimName.length > 1 )
-			row.caction = "<img src=\"images/studio/bullet/dfs_search_sel.png\" />";
-		else
+		// add a data to the search details column
+		if ( this.items[index+1] ) {
+			if ((this.items[index+1].dimName.indexOf("1") === 0 || this.items[index+1].dimName.indexOf("2") === 0 || this.items[index+1].dimName.indexOf("3") === 0)
+					&& this.items[index+1].dimName.length > 1)
+				row.caction = "<img src=\"images/studio/bullet/dfs_search_sel.png\" />";
+		} else {
 			row.caction="";
+		}
 		
-		this.gridData_level_1.push( row );
+		// add a data to the icon column
+		if (this.gridColumns[2] !== undefined && this.gridColumns[2].dataIndex === 'rep_icon') {
+			row.rep_icon = "<img src=\"http://localhost:8080/RestFixture/images/" + item.img + ".png\" />";
+		}
+		
+		row.long_descr = item.c16;// add a data to the tooltip column
+		
+		buildPopupLink(item, row);// add the data for the "popup icon"
+		
+		this.gridData_level_1.push( row );// add the row to the grid
 		
 		this.lastParentIndex = row.row_id;// last possible parent for the second level rows
 	}
@@ -188,11 +312,12 @@ CBSPublisher.prototype.parseItem=function( item, index ) {
 		}
 	}
 	// SECOND LEVEL - Tabs
-	else if ( item.dimName.indexOf("D1") === 0 ) {
+	else if ( item.dimName.indexOf("D") === 0 ) {
+		//this.isThereDetails = true;
 		var tab_idx = item.dimName.substring(1, 3);
 		this.gridsOrFormsLevel_2["reportName_" + tab_idx] = item.c01;
 	}
-	else if ( item.dimName.indexOf("C1") === 0 ) {
+	else if ( item.dimName.indexOf("C") === 0 ) {
 		var tab_idx = item.dimName.substring(1, 3);
 		
 		if (this.gridsOrFormsLevel_2["gridColumns_" + tab_idx] == undefined) {
@@ -204,7 +329,7 @@ CBSPublisher.prototype.parseItem=function( item, index ) {
 		this.gridsOrFormsLevel_2["gridColumns_" + tab_idx].push( {header: item.c02, dataIndex: "c"+(colIndex+1)} );
 		this.gridsOrFormsLevel_2["gridFields_" + tab_idx].push( {name: "c"+(colIndex+1)} );
 	}
-	else if (item.dimName.indexOf("1") === 0 && item.dimName.length > 1) {
+	else if ((item.dimName.indexOf("1") === 0  || item.dimName.indexOf("2") || item.dimName.indexOf("3")) && item.dimName.length > 1) {
 		var tab_idx = item.dimName;
 		
 		if (this.gridsOrFormsLevel_2["gridFields_" + tab_idx]) {// if it was defined, it's a table data
@@ -215,6 +340,19 @@ CBSPublisher.prototype.parseItem=function( item, index ) {
 			
 			if (this.gridsOrFormsLevel_2["gridData_" + tab_idx] == undefined)
 				this.gridsOrFormsLevel_2["gridData_" + tab_idx] = new Array();
+			
+			// add a column for the "popup icon"
+			var doesCactionExist = false;
+			for (var i = 0; i < this.gridsOrFormsLevel_2["gridFields_" + tab_idx].length; i++) {
+				if (this.gridsOrFormsLevel_2["gridFields_" + tab_idx][i].name == "caction")
+					doesCactionExist = true;
+			}
+			if (doesCactionExist == false) {
+				this.gridsOrFormsLevel_2["gridColumns_" + tab_idx].push( {header: "", dataIndex: "caction", width: 30} );
+				this.gridsOrFormsLevel_2["gridFields_" + tab_idx].push( {name: "caction"} );
+			}
+			
+			buildPopupLink(item, row);// add the data for the "popup icon"
 				
 			this.gridsOrFormsLevel_2["gridData_" + tab_idx].push({ parentIndex: this.lastParentIndex, row: row });
 		}
@@ -238,7 +376,7 @@ CBSPublisher.prototype.renderReport=function() {
 	var cbsPublisher_instance = this;
 	var items = new Array();
 	
-	// zero level normal form
+	// zero level - normal form
 	if (this.normalFormLevel_0.length > 0) {
 		var html = "<table style='font-size:12px;' width='100%'><tr>";// put data in 1 row
 		for (var i = 0; i < this.normalFormLevel_0.length; i++) {
@@ -254,7 +392,7 @@ CBSPublisher.prototype.renderReport=function() {
 		items.push({ xtype: "splitter" });// splitter between the levels
 	}
 	
-	// zero level collapsed form
+	// zero level - collapsed form
 	if (this.collapsedFormLevel_0.length > 0) {
 		var html = "<table style='font-size:12px;' width='100%'>";// put data in several rows, 2 columns
 		for (var i = 0; i < this.collapsedFormLevel_0.length; i++) {
@@ -277,22 +415,68 @@ CBSPublisher.prototype.renderReport=function() {
 		items.push({ xtype: "splitter" });// splitter between the levels
 	}
 	
-	// creation of the first level grid
+	// first level - dimension links
+	if (this.dimensionLinks.length > 0) {
+		var dimensionData = new Array();
+		for (var i = 0; i < this.dimensionLinks.length; i++) {
+			dimensionData.push({ "wsParams": this.dimensionLinks[i].wsParams, "dimTitle": this.dimensionLinks[i].title });
+		}
+		
+		var dimensionDataStore = Ext.create('Ext.data.Store', {
+		    fields: ['wsParams', 'dimTitle'],
+		    data: dimensionData
+		});
+
+		items.push({
+			itemId: "cbsPeriodDimensions",
+			maxWidth: 300,
+			xtype: 'combobox',
+		    fieldLabel: 'Period',
+		    store: dimensionDataStore,
+		    queryMode: 'local',
+		    displayField: 'dimTitle',
+		    valueField: 'wsParams',
+		    listeners: {
+		    	select: function(combo, records, eOpts) {
+		    		cbsWidgetPublisher(cbsPublisher_instance.dataWidget, false, records[0].data.wsParams, null, records[0].data.dimTitle, true, cbsPublisher_instance);
+		    	} 
+		    }
+		});
+	}
+	
+	// display error message box
+	if (this.error.exists == true) {
+		items.push({
+			itemId: "cbsPublisherErrorMessage",
+			border: false,
+			html: this.buildErrorMessageBox()
+		});
+		
+		items.push({ xtype: "splitter" });// splitter between the levels
+	}
+	
+	// first level - grid:
+	// 1) rearrange the icon column position: it must always be the second visible column
+	if (this.gridColumns[2] !== undefined && this.gridColumns[2].dataIndex === 'rep_icon') {
+		var iconCol = this.gridColumns[2];
+		this.gridColumns[2] = this.gridColumns[3];
+		this.gridColumns[3] = iconCol;
+	}
+	// 2) create and add a grid item
 	items.push({
 		xtype: "grid",
+		itemId: "cbsPublisherMainGrid",
     	columns: this.gridColumns,
 	    store: Ext.create("Ext.data.Store", { fields: this.gridFields_level_1, data: this.gridData_level_1 }),
     	flex: 1,
     	listeners: {
 	    	itemclick: function(grid, record, item, index, e) {
-	    		cbsPublisher_instance.renderTab(record.get('row_id'), this, this.ownerCt);
+	    		cbsPublisher_instance.renderTab(record.get('row_id'), this, this.ownerCt);// second level - tabs
 	    	}
     	}
 	});
 	
-	items.push({ xtype: "splitter" });// splitter between the levels
-	
-	// first level charts
+	// first level - charts
 	var charts = this.buildCharts(0, 0);
 	var chartPanel = null;
 	if (charts.length > 0) {
@@ -305,147 +489,205 @@ CBSPublisher.prototype.renderReport=function() {
 	    	itemId: this.chartsPanelId,
 		    bodyPadding: 5,
 	    	flex: 1,
-	    	autoScroll: true,//overflowX: "auto", overflowY: "auto",
+	    	autoScroll: true,
 	    	items: chartItems,
 	    	layout: {
-	    	    type: "hbox"/*,
-	        	align: "stretch"*/
+	    	    type: "hbox"
 	    	},
 		};
+		items.push({ xtype: "splitter" });// splitter between the levels
 		items.push(chartsPanelDef);
 	}
 	
-	items.push({ xtype: "splitter" });// splitter between the levels
-	items.push( this.initialDetailsPanelDef );// initial blank panel for the second level
+	if (this.inPopup == false) {// main panel
+		this.reportPanel = Ext.create('Ext.panel.Panel', {
+			title: this.reportName,
+	    	width: 1100,
+		    height: 800,
+	    	renderTo: this.wgt_placeolder_id,
+		    layout: {
+	    	    type: "vbox",
+	        	align: "stretch",
+		        padding: 10
+	    	},
+		    items: items
+		});
+	} else {// just return items - they will be used later to display in modal window
+		return items;
+	}
+}
+
+CBSPublisher.prototype.refreshReport=function() {
+	console.log(this);
+	var cbsPublisher_instance = this;
 	
-	// main panel
-	var reportPanel = Ext.create('Ext.panel.Panel', {
-		title: this.reportName,
-    	width: 1100,
-	    height: 800,
-    	renderTo: this.wgt_placeolder_id,
-	    layout: {
-    	    type: "vbox",
-        	align: "stretch",
-	        padding: 10
-    	},
-	    items: items
-	});
+	// select the dimension link if the report was reloaded
+	if (this.dimensionLinks.length > 0) {
+		var dimensionsCombo = this.reportPanel.getComponent("cbsPeriodDimensions");
+		dimensionsCombo.setValue( this.periodTitleSelected );
+	}
+	
+	// treat error message
+	if (this.error.exists == true) {
+		var errorMessageBox = this.reportPanel.getComponent("cbsPublisherErrorMessage");
+		if (errorMessageBox !== undefined) {
+			errorMessageBox.update( this.buildErrorMessageBox() );
+		} else {
+			this.reportPanel.add({
+				itemId: "cbsPublisherErrorMessage",
+				border: false,
+				html: this.buildErrorMessageBox()
+			});
+		}
+		
+		// hide all other components except dimention links and error message
+		for (var i = 0; i < this.reportPanel.items.length; i++) {
+			var comp = this.reportPanel.items.getAt(i);
+			var compItemId = comp.getItemId();
+			if (compItemId !== "cbsPeriodDimensions" && compItemId !== "cbsPublisherErrorMessage") {
+				comp.hide();
+			}
+		}
+	} else {
+		// show all components except error message
+		for (var i = 0; i < this.reportPanel.items.length; i++) {
+			var comp = this.reportPanel.items.getAt(i);
+			var compItemId = comp.getItemId();
+			if (compItemId === "cbsPublisherErrorMessage") {
+				comp.hide();
+			} else {
+				comp.show();
+			}
+		}
+	}
+	
+	// reload the grid with new data
+	var mainGrid = this.reportPanel.getComponent("cbsPublisherMainGrid");
+	var newStore = Ext.create("Ext.data.Store", { fields: this.gridFields_level_1, data: this.gridData_level_1 });
+	mainGrid.reconfigure(newStore);
 }
 
 /*
  * Create Tab with second level nested grids. Must be invoked clicking on the row in the first level grid.
  */
 CBSPublisher.prototype.renderTab=function(parentIndex, firstLevelGrid, container) {
-	var tabIndex = 0;
+	var cbsPublisher_instance = this;
 	
-	if (this.gridsOrFormsLevel_2["reportName_1" + tabIndex]) {
-		var parseContinue = true;
-		var items = new Array();
+	var buildTabs = function(treeIndex, cbsPublisher_instance) {
+		var tabIndex = 0;
 		
-		// tabs: grids & forms
-		while (parseContinue) {
-			if (this.gridsOrFormsLevel_2["reportName_1" + tabIndex]) {
-				if (this.gridsOrFormsLevel_2["gridData_1" + tabIndex]) {// if it was defined, it's a table data
-					var gridData = new Array();
-					var currTabAllData = this.gridsOrFormsLevel_2["gridData_1" + tabIndex];
-					for (var i = 0; i < currTabAllData.length + 1; i++) {
-						if (currTabAllData[i] && (currTabAllData[i].parentIndex == parentIndex))
-							gridData.push( currTabAllData[i].row );
+		if (cbsPublisher_instance.gridsOrFormsLevel_2["reportName_" + treeIndex + tabIndex]) {
+			var parseContinue = true;
+			var items = new Array();
+			
+			// tabs: grids & forms
+			while (parseContinue) {
+				if (cbsPublisher_instance.gridsOrFormsLevel_2["reportName_" + treeIndex + tabIndex]) {
+					if (cbsPublisher_instance.gridsOrFormsLevel_2["gridData_" + treeIndex + tabIndex]) {// if it was defined, it's a table data
+						var gridData = new Array();
+						var currTabAllData = cbsPublisher_instance.gridsOrFormsLevel_2["gridData_" + treeIndex + tabIndex];
+						for (var i = 0; i < currTabAllData.length + 1; i++) {
+							if (currTabAllData[i] && (currTabAllData[i].parentIndex == parentIndex))
+								gridData.push( currTabAllData[i].row );
+						}
+						
+						if (gridData.length > 0) {
+							var item = {
+								title: cbsPublisher_instance.gridsOrFormsLevel_2["reportName_" + treeIndex + tabIndex],
+								forceFit: true,
+			        			xtype: "grid",
+			        			columns: cbsPublisher_instance.gridsOrFormsLevel_2["gridColumns_" + treeIndex + tabIndex],
+			        			store: Ext.create("Ext.data.Store", { fields: cbsPublisher_instance.gridsOrFormsLevel_2["gridFields_" + treeIndex + tabIndex], data: gridData })
+				    		};
+							items.push(item);
+						}
 					}
-					
-					if (gridData.length > 0) {
+					else {// it's a form data
+						var html = "<table style='font-size:12px;' width='100%'>";// put data in several rows, 2 columns
+						var currTabAllData = cbsPublisher_instance.gridsOrFormsLevel_2["formData_1" + tabIndex];
+						for (var i = 0; i < currTabAllData.length; i++) {
+							if (currTabAllData[i] && (currTabAllData[i].parentIndex == parentIndex)) {
+								html = html + "<tr><td style='padding:3px'>" + currTabAllData[i].label + "</td><td><b>" + currTabAllData[i].data + "</b></td>";
+								
+								if ((i + 1) < currTabAllData.length)
+									html = html + "<td>" + currTabAllData[++i].label + "</td><td><b>" + currTabAllData[i].data + "</b></td></tr>";
+								else
+									html = html + "</tr>";
+							}
+						}
+						html += "</table>";
+						
 						var item = {
-							title: this.gridsOrFormsLevel_2["reportName_1" + tabIndex],
-							forceFit: true,
-		        			xtype: "grid",
-		        			columns: this.gridsOrFormsLevel_2["gridColumns_1" + tabIndex],
-		        			store: Ext.create("Ext.data.Store", { fields: this.gridsOrFormsLevel_2["gridFields_1" + tabIndex], data: gridData })
+							title: cbsPublisher_instance.gridsOrFormsLevel_2["reportName_" + treeIndex + tabIndex],
+							html: html
 			    		};
 						items.push(item);
 					}
 				}
-				else {// it's a form data
-					var html = "<table style='font-size:12px;' width='100%'>";// put data in several rows, 2 columns
-					var currTabAllData = this.gridsOrFormsLevel_2["formData_1" + tabIndex];
-					for (var i = 0; i < currTabAllData.length; i++) {
-						if (currTabAllData[i] && (currTabAllData[i].parentIndex == parentIndex)) {
-							html = html + "<tr><td style='padding:3px'>" + currTabAllData[i].label + "</td><td><b>" + currTabAllData[i].data + "</b></td>";
-							
-							if ((i + 1) < currTabAllData.length)
-								html = html + "<td>" + currTabAllData[++i].label + "</td><td><b>" + currTabAllData[i].data + "</b></td></tr>";
-							else
-								html = html + "</tr>";
-						}
-					}
-					html += "</table>";
-					
-					var item = {
-						title: this.gridsOrFormsLevel_2["reportName_1" + tabIndex],
-						html: html
-		    		};
-					items.push(item);
+				else
+					parseContinue = false;
+				
+				tabIndex++;
+			}
+			
+			// second level charts
+			var charts = cbsPublisher_instance.buildCharts(1, parentIndex);
+			if (charts.length > 0) {
+				var chartsContainer = container.getComponent(cbsPublisher_instance.chartsPanelId);
+				
+				// first, remove the old second level charts
+				for (var i = 0; i < chartsContainer.items.length; i++) {
+					var oldChart = chartsContainer.getComponent( cbsPublisher_instance.createChartId(1, i) );
+					if (oldChart)
+						chartsContainer.remove(oldChart);
 				}
-			}
-			else
-				parseContinue = false;
-			
-			tabIndex++;
-		}
-		
-		// second level charts
-		var charts = this.buildCharts(1, parentIndex);
-		if (charts.length > 0) {
-			var chartsContainer = container.getComponent(this.chartsPanelId);
-			
-			// first, remove the old second level charts
-			for (var i = 0; i < chartsContainer.items.length; i++) {
-				var oldChart = chartsContainer.getComponent( this.createChartId(1, i) );
-				if (oldChart)
-					chartsContainer.remove(oldChart);
+				
+				// and now, add new second level charts
+				for (var i = 0; i < charts.length; i++) {
+					chartsContainer.add( charts[i] );
+				}
+				
+				chartsContainer.doLayout();
 			}
 			
-			// and now, add new second level charts
-			for (var i = 0; i < charts.length; i++) {
-				chartsContainer.add( charts[i] );
+			// build the Tab container
+			var tabsId = "secondLevelTab";
+			var tabsSplitterId = "secondLevelTabSplitter";
+			var newTabs = null;
+			
+			if (items.length > 0) {
+				newTabs = Ext.create('Ext.tab.Panel', {// tabs
+					itemId: tabsId,
+					bodyPadding: 10,
+					flex: 1,
+					plain: true,
+					items: items
+				});
 			}
 			
-			chartsContainer.doLayout();
+			// remove previous tabs if exists
+			if ( container.getComponent(tabsId) ) {
+				container.remove( container.getComponent(tabsSplitterId) );
+				container.remove( container.getComponent(tabsId) );
+			}
+			
+			// add new tabs
+			if (newTabs !== null) {
+				container.add(newTabs);
+				container.insert(2, Ext.create('Ext.resizer.Splitter', {itemId: tabsSplitterId}));//splitter cannot be the last component - insert it before the tabs
+			}		
+			container.doLayout();
+			
+			// scroll to selected row in the first level grid
+			var lastSelectedRow = firstLevelGrid.getSelectionModel().getLastSelected().index;
+			firstLevelGrid.getView().focusRow( lastSelectedRow );
 		}
-		
-		// build the Tab container
-		var tabsId = "secondLevelTab";
-		var container_level_2 = null;
-		
-		if (items.length > 0) {
-			container_level_2 = Ext.create('Ext.tab.Panel', {// tabs
-				itemId: tabsId,
-				bodyPadding: 10,
-				flex: 1,
-				plain: true,
-				items: items
-			});
-		}
-		else {
-			container_level_2 = Ext.create('Ext.panel.Panel', this.initialDetailsPanelDef);// initial blank panel
-		}
-		
-		// remove initial blank panel if exists
-		if ( container.getComponent(this.initialDetailsPanelId) )
-			container.remove( container.getComponent(this.initialDetailsPanelId) );
-		
-		// remove previous tabs if exists
-		if ( container.getComponent(tabsId) )
-			container.remove( container.getComponent(tabsId) );
-		
-		// add new tabs or initial blank panel
-		container.add(container_level_2);
-		container.doLayout();
-		
-		// scroll to selected row in the first level grid
-		var lastSelectedRow = firstLevelGrid.getSelectionModel().getLastSelected().index;
-		firstLevelGrid.getView().focusRow( lastSelectedRow );
 	}
+	
+	// only 3 levels of the Tree could exist
+	buildTabs(1, cbsPublisher_instance);
+	buildTabs(2, cbsPublisher_instance);
+	buildTabs(3, cbsPublisher_instance);
 }
 
 CBSPublisher.prototype.buildCharts=function(levelIndex, parentIndex) {
@@ -497,10 +739,11 @@ CBSPublisher.prototype.buildPieChart=function(chartDef) {
 	    store: store, theme: 'Base:gradients', shadow: true,
 	    legend: { position: 'bottom' },
 	    series: [{
+	    	//title: 'aaa',
 	        type: 'pie', angleField: 'data', showInLegend: true, 
 	        tips: {
 	            trackMouse: true,  width: 200, height: 28,
-	            renderer: function(storeItem, item) {// calculate and display percentage on hover
+	            renderer: function(storeItem) {// calculate and display percentage on hover
 	                var total = 0;
 	                store.each(function(rec) { total += rec.get('data'); });
 	                this.setTitle(storeItem.get('name') + ': ' + Math.round(storeItem.get('data') / total * 100) + '%');
@@ -512,7 +755,7 @@ CBSPublisher.prototype.buildPieChart=function(chartDef) {
 	        label    : {
 	        	field: 'data', display: 'rotate', contrast: true,
 	        	font: "12px 'Lucida Grande', 'Lucida Sans Unicode', Verdana, Arial, Helvetica, sans-serif",
-	        	renderer: function(storeItem, item) {// calculate percentage
+	        	renderer: function(storeItem) {// calculate percentage
 	        		var total = 0;
 	                store.each(function(rec) { total += rec.get('data'); });
 	                return Math.round(storeItem / total * 100) + '%';
@@ -575,4 +818,76 @@ CBSPublisher.prototype.buildLineChart=function(chartDef) {
 	});
 	
 	return lineChart;
+}
+
+CBSPublisher.prototype.buildErrorMessageBox=function() {
+	/*var sHTML = '<div id="8479143332_div3" class="gc_error_box" style="display: block;">' +
+		'<img elementid="8479143332_img" src="images/icon/bt_close.gif" class="gc_close_button" style="display: none;">' +
+		'<b>Code:</b> ' + this.error.code +
+		'<div elementid="8479143332_once" style="display: block;">' +
+		'<b>Description:</b> ' + this.error.description +
+		'</div>' +
+		'<div elementid="8479143332_once" style="display: block;">' +
+		'<b>Explanation:</b> ' + this.error.explanation +
+		'</div>' +
+		'</div>';*/
+	var sHTML = '<div id="8479143332_div3" class="gc_error_box" style="display: block;">' +
+		'<img elementid="8479143332_img" src="images/icon/bt_close.gif" class="gc_close_button" style="display: none;">' +
+		'<div elementid="8479143332_once" style="display: block;">' +
+		'<b>Code:</b> ' + this.error.code + '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' +
+		'<b>Description:</b> ' + this.error.description + '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' +
+		'<b>Explanation:</b> ' + this.error.explanation +
+		'</div>' +
+		'</div>';
+	
+	return sHTML;
+}
+
+/*
+ * Displays the widget content in popup window calling WS with dynamically defined parameters.
+ */
+function cbsWidgetPublisherInPopup(wsParamsAsString) {
+	// preparing the WS parameters JSON object
+	var wsParamsJsonObj = new Object();
+	var wsParamsArray = wsParamsAsString.split(';');
+	
+	wsParamsJsonObj.usr = 'mp';
+	wsParamsJsonObj.lng = 'en';
+	wsParamsJsonObj.roles = 'r';
+	wsParamsJsonObj.sheetname = wsParamsArray[2];
+	wsParamsJsonObj.client = wsParamsArray[3];
+	//var report = wsParamsArray[4];// for the future - to say that this is a publisher report
+	
+	// parameters 'p1'...'p5'
+	for (var i = 5; i < wsParamsArray.length; i++) {
+		wsParamsJsonObj["p" + (i-4)] = wsParamsArray[i];
+	}
+	
+	// dispaly popup window in the callback function that will be called by the DataQuery after getting the WS data
+	var popupCallback = function(reportItems, cbsPublisher_instance) {
+		$("body").append("<style type=\"text/css\">" +
+				".whitePopup .x-window-body {" +
+					"background-color: white;" +
+				"}" +
+			"</style>");
+		
+		var popupWindow = Ext.create('Ext.window.Window', {
+			title: cbsPublisher_instance.reportName,
+		    modal: true,
+		    width: 900,
+		    height: 750,
+		    cls:'whitePopup',
+		    layout: {
+	    	    type: "vbox",
+	        	align: "stretch",
+		        padding: 10
+	    	},
+		    items: reportItems
+		}).show();
+		
+		cbsPublisher_instance.reportPanel = popupWindow;
+	};
+	
+	// execute DataQuery
+	var reportItems = cbsPublisherDataQueryExecute(null, null, true, wsParamsJsonObj, popupCallback, null, false, null);
 }
