@@ -903,11 +903,12 @@ function CBSPublisherSettings(dataWidget) {
 	this.usr = 'mp';
 	this.lng = user.locale.name;
 	this.roles = 'r';
-	this.sheetname = 'PK_DP_QC_CPT2.report';//dataWidget.parameters.pkName;
+	this.sheetname = dataWidget.parameters.pkName;//'PK_DP_QC_CPT2.report';
 	this.client = 501;
 	
 	dfGetContextValue("faceliftingContext", "selectedClient", function(data) {
 		cbs_settings_instance.client = data;
+		console.log("context backup: " + cbs_settings_instance.client);
 	});
 }
 var cbsPublisherSettings = null;
