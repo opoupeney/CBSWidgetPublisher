@@ -14,7 +14,7 @@ function cbsWidgetPublisher(dataWidget, inPopup, wsParams, popupCallback, period
 	cbsPublisherSettings = new CBSPublisherSettings(dataWidget);
 	if (wsParams === undefined || wsParams === null)
 		wsParams = cbsPublisherSettings;
-	console.log("init: " + wsParams.client);
+	//console.log("init: " + wsParams.client);
 		
 	var wgt_placeolder_id = (cbs_publisher_instance !== undefined) ? cbs_publisher_instance.wgt_placeolder_id : null;
 	if (doNotClearContent !== true) {
@@ -893,24 +893,25 @@ function cbsWidgetPublisherInPopup(wsParamsAsString) {
 	};
 	
 	// execute DataQuery
-	var reportItems = cbsPublisherDataQueryExecute(null, null, true, wsParamsJsonObj, popupCallback, null, false, null);
+	var reportItems = cbsPublisherDataQueryExecute(cbsPublisherSettings.dataWidget, null, true, wsParamsJsonObj, popupCallback, null, false, null);
 }
 
+/*
+ * Global object to store the data query parameters.
+ */
 function CBSPublisherSettings(dataWidget) {
 	var cbs_settings_instance = this;
-	this.dataWidget = dataWidget;
 	
-	// DataQuery parameters
+	this.dataWidget = dataWidget;
 	this.usr = 'mp';
 	this.lng = user.locale.name;
 	this.roles = 'r';
 	this.sheetname = this.dataWidget.parameters.pkName;//'PK_DP_QC_CPT2.report';
 	this.client = 501;
 	
-	var selectedId = dfGetContextValue("faceliftingContext", "selectedClient", function(data) {
+	dfGetContextValue("faceliftingContext", "selectedClient", function(data) {
 		cbs_settings_instance.client = data;
 		console.log("context backup: " + cbs_settings_instance.client);
 	});
-	console.log("selectedId: " + selectedId);
 }
 var cbsPublisherSettings = null;
