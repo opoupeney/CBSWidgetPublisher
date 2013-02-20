@@ -36,7 +36,7 @@ function cbsPublisherDataQueryExecute(dataWidget, wgt_placeolder_id, inPopup, ws
 	dq.execute( null, function(dataSet) {
 		var buffer = dataSet.getData();
 		if ( buffer !== null && buffer["coResultVal"] !== null ) {
-			var items = buffer[0].coResultVal;
+			var items = buffer.coResultVal;
 			
 			var publisher = cbs_publisher_instance;
 			if (doNotClearContent !== true) {
