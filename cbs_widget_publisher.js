@@ -901,13 +901,13 @@ function CBSPublisherSettings(dataWidget) {
 	
 	// DataQuery parameters
 	this.usr = 'mp';
-	this.lng = user.locale.name;
+	this.lng = 'en';//user.locale.name;
 	this.roles = 'r';
 	this.sheetname = 'PK_DP_QC_CPT2.report';//dataWidget.parameters.pkName;
-	this.client = null;
+	this.client = 501;
 	
-	dfGetContextValue("faceliftingContext", "selectedClient", function(data) {
-		cbs_settings_instance.client = data;//501
-	});
+	//dfGetContextValue("faceliftingContext", "selectedClient", function(data) {
+	//	cbs_settings_instance.client = data;
+	//});
 }
 var cbsPublisherSettings = null;
