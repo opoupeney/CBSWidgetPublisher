@@ -15,7 +15,8 @@ function cbsWidgetPublisher(dataWidget, inPopup, wsParams, popupCallback, period
 	if (wsParams === undefined || wsParams === null)
 		wsParams = cbsPublisherSettings;
 	//console.log("init: " + wsParams.client);
-		
+	
+	// widget content creation
 	var wgt_placeolder_id = (cbs_publisher_instance !== undefined) ? cbs_publisher_instance.wgt_placeolder_id : null;
 	if (doNotClearContent !== true) {
 		dataWidget.clearContent();
@@ -36,7 +37,8 @@ function cbsPublisherDataQueryExecute(dataWidget, wgt_placeolder_id, inPopup, ws
 	dq.execute( null, function(dataSet) {
 		var buffer = dataSet.getData();
 		if ( buffer !== null && buffer["coResultVal"] !== null ) {
-			var items = buffer.coResultVal;//var items = buffer[0].coResultVal;
+			var items = buffer.coResultVal;
+			//var items = buffer[0].coResultVal;
 			
 			var publisher = cbs_publisher_instance;
 			if (doNotClearContent !== true) {
@@ -678,7 +680,9 @@ CBSPublisher.prototype.renderTab=function(parentIndex, firstLevelGrid, container
 			// add new tabs
 			if (newTabs !== null) {
 				container.add(newTabs);
-				container.insert(2, Ext.create('Ext.resizer.Splitter', {itemId: tabsSplitterId}));//splitter cannot be the last component - insert it before the tabs
+
+				//splitter cannot be the last component - insert it before the tabsx
+				container.insert(container.items.length - 1, Ext.create('Ext.resizer.Splitter', {itemId: tabsSplitterId}));
 			}		
 			container.doLayout();
 			
@@ -906,7 +910,12 @@ function CBSPublisherSettings(dataWidget) {
 	this.usr = 'mp';
 	this.lng = user.locale.name;
 	this.roles = 'r';
-	this.sheetname = this.dataWidget.parameters.pkName;//'PK_DP_QC_CPT2.report';
+	this.sheetname = this.dataWidget.parameters.pkName;
+	//hard coded testing parameters:
+	//this.sheetname = 'PK_DP_QC_CPT2.report';
+	//this.sheetname = 'pk_dp_qc_supplier4.report';
+	//this.sheetname = 'pk_dp_qc_supplier3.report';
+	//this.sheetname = 'pk_dp_qc_supplier2.report';
 	this.client = 501;
 	
 	dfGetContextValue("faceliftingContext", "selectedClient", function(data) {
