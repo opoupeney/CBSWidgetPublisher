@@ -898,12 +898,13 @@ function cbsWidgetPublisherInPopup(wsParamsAsString) {
 
 function CBSPublisherSettings(dataWidget) {
 	var cbs_settings_instance = this;
+	this.dataWidget = dataWidget;
 	
 	// DataQuery parameters
 	this.usr = 'mp';
 	this.lng = user.locale.name;
 	this.roles = 'r';
-	this.sheetname = dataWidget.parameters.pkName;//'PK_DP_QC_CPT2.report';
+	this.sheetname = this.dataWidget.parameters.pkName;//'PK_DP_QC_CPT2.report';
 	this.client = 501;
 	
 	dfGetContextValue("faceliftingContext", "selectedClient", function(data) {
