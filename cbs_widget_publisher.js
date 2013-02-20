@@ -907,9 +907,10 @@ function CBSPublisherSettings(dataWidget) {
 	this.sheetname = this.dataWidget.parameters.pkName;//'PK_DP_QC_CPT2.report';
 	this.client = 501;
 	
-	dfGetContextValue("faceliftingContext", "selectedClient", function(data) {
+	var selectedId = dfGetContextValue("faceliftingContext", "selectedClient", function(data) {
 		cbs_settings_instance.client = data;
 		console.log("context backup: " + cbs_settings_instance.client);
 	});
+	console.log("selectedId: " + selectedId);
 }
 var cbsPublisherSettings = null;
