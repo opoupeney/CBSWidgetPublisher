@@ -14,7 +14,7 @@ function cbsWidgetPublisher(dataWidget, inPopup, wsParams, popupCallback, period
 	cbsPublisherSettings = new CBSPublisherSettings(dataWidget);
 	if (wsParams === undefined || wsParams === null)
 		wsParams = cbsPublisherSettings;
-	console.log(wsParams);
+	console.log("init: " + wsParams.client);
 		
 	var wgt_placeolder_id = (cbs_publisher_instance !== undefined) ? cbs_publisher_instance.wgt_placeolder_id : null;
 	if (doNotClearContent !== true) {
