@@ -11,7 +11,11 @@
 
 function cbsWidgetPublisher(dataWidget, inPopup, wsParams, popupCallback, periodTitleSelected, doNotClearContent, cbs_publisher_instance) {
 	//console.log(wsParams);
-	
+	// DataQuery settings
+	cbsPublisherSettings = new CBSPublisherSettings(dataWidget);
+	if (wsParams === undefined || wsParams === null)
+		wsParams = cbsPublisherSettings;
+		
 	var wgt_placeolder_id = (cbs_publisher_instance !== undefined) ? cbs_publisher_instance.wgt_placeolder_id : null;
 	if (doNotClearContent !== true) {
 		dataWidget.clearContent();
@@ -225,9 +229,9 @@ CBSPublisher.prototype.parseItem=function( item, index ) {
 		// preparing the WS parameters JSON object
 		var wsParamsJsonObj = new Object();
 		
-		wsParamsJsonObj.usr = 'mp';
-		wsParamsJsonObj.lng = 'en';
-		wsParamsJsonObj.roles = 'r';
+		wsParamsJsonObj.usr = cbsPublisherSettings.usr;
+		wsParamsJsonObj.lng = cbsPublisherSettings.lng;
+		wsParamsJsonObj.roles = cbsPublisherSettings.roles;
 		wsParamsJsonObj.sheetname = item.c03;
 		wsParamsJsonObj.client = item.c04;
 		//var report = item.c05;// for the future - to say that this is a publisher report
@@ -851,9 +855,9 @@ function cbsWidgetPublisherInPopup(wsParamsAsString) {
 	var wsParamsJsonObj = new Object();
 	var wsParamsArray = wsParamsAsString.split(';');
 	
-	wsParamsJsonObj.usr = 'mp';
-	wsParamsJsonObj.lng = 'en';
-	wsParamsJsonObj.roles = 'r';
+	wsParamsJsonObj.usr = cbsPublisherSettings.usr;
+	wsParamsJsonObj.lng = cbsPublisherSettings.lng;
+	wsParamsJsonObj.roles = cbsPublisherSettings.roles;
 	wsParamsJsonObj.sheetname = wsParamsArray[2];
 	wsParamsJsonObj.client = wsParamsArray[3];
 	//var report = wsParamsArray[4];// for the future - to say that this is a publisher report
@@ -891,3 +895,19 @@ function cbsWidgetPublisherInPopup(wsParamsAsString) {
 	// execute DataQuery
 	var reportItems = cbsPublisherDataQueryExecute(null, null, true, wsParamsJsonObj, popupCallback, null, false, null);
 }
+
+function CBSPublisherSettings(dataWidget) {
+	var cbs_settings_instance = this;
+	
+	// DataQuery parameters
+	this.usr = 'mp';
+	this.lng = user.locale.name;//'en';
+	this.roles = 'r';
+	this.sheetname = 'PK_DP_QC_CPT2.report';//dataWidget.parameters.pkName;
+	this.client = null;
+	
+	dfGetContextValue("faceliftingContext", "selectedClient", function(data) {
+		cbs_settings_instance.client = 501;/*data;*/
+	});
+}
+var cbsPublisherSettings = null;
