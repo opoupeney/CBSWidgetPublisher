@@ -28,7 +28,7 @@ function cbsWidgetPublisher(dataWidget, inPopup, wsParams, popupCallback, period
 }
 
 function cbsPublisherDataQueryExecute(dataWidget, wgt_placeolder_id, inPopup, wsParams, popupCallback, periodTitleSelected, doNotClearContent, cbs_publisher_instance) {
-	var dq = new DataQuery( "TestPublisher" );
+	var dq = new DataQuery( "qWidgetPublisher" );
 	
 	if (wsParams !== undefined && wsParams !== null)
 		dq.setParameters(wsParams);
@@ -901,13 +901,13 @@ function CBSPublisherSettings(dataWidget) {
 	
 	// DataQuery parameters
 	this.usr = 'mp';
-	this.lng = 'en';//user.locale.name;
+	this.lng = user.locale.name;
 	this.roles = 'r';
 	this.sheetname = 'PK_DP_QC_CPT2.report';//dataWidget.parameters.pkName;
 	this.client = 501;
 	
-	//dfGetContextValue("faceliftingContext", "selectedClient", function(data) {
-	//	cbs_settings_instance.client = data;
-	//});
+	dfGetContextValue("faceliftingContext", "selectedClient", function(data) {
+		cbs_settings_instance.client = data;
+	});
 }
 var cbsPublisherSettings = null;
