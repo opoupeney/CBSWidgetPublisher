@@ -50,9 +50,6 @@ function CBSPublisherSettings(dataWidget, inPopup, wsParams, popupCallback, peri
 	//this.sheetname = 'pk_dp_qc_supplier2.report';
 	this.client = null;
 	
-	if (wsParams === undefined || wsParams === null)
-		wsParams = cbsPublisherSettings;
-	
 	// get the clienId from the context
 	dfGetContextValue("faceliftingContext", "selectedClient", function(data) {
 		cbs_settings_instance.client = data;//501;
@@ -67,7 +64,8 @@ function CBSPublisherSettings(dataWidget, inPopup, wsParams, popupCallback, peri
 		}
 		
 		inPopup = (inPopup === true) ? true : false;
-		cbsPublisherDataQueryExecute(dataWidget, wgt_placeolder_id, inPopup, wsParams, popupCallback, periodTitleSelected, doNotClearContent, cbs_publisher_instance);
+		
+		cbsPublisherDataQueryExecute(dataWidget, wgt_placeolder_id, inPopup, cbs_settings_instance, popupCallback, periodTitleSelected, doNotClearContent, cbs_publisher_instance);
 	});
 	
 	/*var wgt_placeolder_id = (cbs_publisher_instance !== undefined) ? cbs_publisher_instance.wgt_placeolder_id : null;
@@ -83,9 +81,9 @@ function CBSPublisherSettings(dataWidget, inPopup, wsParams, popupCallback, peri
 
 function cbsPublisherDataQueryExecute(dataWidget, wgt_placeolder_id, inPopup, wsParams, popupCallback, periodTitleSelected, doNotClearContent, cbs_publisher_instance) {
 	if (wsParams !== null)
-		console.log("cbsPublisherDataQueryExecute: " + wsParams.client);
+		console.log("wsParams !== null, cbsPublisherDataQueryExecute: " + wsParams.client);
 	else
-		console.log("cbsPublisherDataQueryExecute: " + wsParams);
+		console.log("wsParams == null, cbsPublisherDataQueryExecute: " + wsParams);
 	
 	var dq = new DataQuery( "qWidgetPublisher" );
 	
