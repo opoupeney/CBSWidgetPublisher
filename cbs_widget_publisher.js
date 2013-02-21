@@ -9,15 +9,18 @@
  * 2) Probably, it makes sense to add a 'PagingToolbar' but anyway, all the data are downloading in one request. 
  */
 
+/*
+ * Widget entry point. 
+ */
 function cbsWidgetPublisher(dataWidget, inPopup, wsParams, popupCallback, periodTitleSelected, doNotClearContent, cbs_publisher_instance) {
 	// DataQuery settings
-	cbsPublisherSettings = new CBSPublisherSettings(dataWidget);
-	if (wsParams === undefined || wsParams === null)
-		wsParams = cbsPublisherSettings;
+	cbsPublisherSettings = new CBSPublisherSettings(dataWidget, inPopup, wsParams, popupCallback, periodTitleSelected, doNotClearContent, cbs_publisher_instance);
+	/*if (wsParams === undefined || wsParams === null)
+		wsParams = cbsPublisherSettings;*/
 	//console.log("init: " + wsParams.client);
 	
 	// widget content creation
-	var wgt_placeolder_id = (cbs_publisher_instance !== undefined) ? cbs_publisher_instance.wgt_placeolder_id : null;
+	/*var wgt_placeolder_id = (cbs_publisher_instance !== undefined) ? cbs_publisher_instance.wgt_placeolder_id : null;
 	if (doNotClearContent !== true) {
 		dataWidget.clearContent();
 		wgt_placeolder_id = Math.uuid( 10,10 );
@@ -25,10 +28,51 @@ function cbsWidgetPublisher(dataWidget, inPopup, wsParams, popupCallback, period
 	}
 	
 	inPopup = (inPopup === true) ? true : false;
-	cbsPublisherDataQueryExecute(dataWidget, wgt_placeolder_id, inPopup, wsParams, popupCallback, periodTitleSelected, doNotClearContent, cbs_publisher_instance);
+	cbsPublisherDataQueryExecute(dataWidget, wgt_placeolder_id, inPopup, wsParams, popupCallback, periodTitleSelected, doNotClearContent, cbs_publisher_instance);*/
+}
+
+/*
+ * Global object to store the data query parameters.
+ */
+var cbsPublisherSettings = null;
+function CBSPublisherSettings(dataWidget, inPopup, wsParams, popupCallback, periodTitleSelected, doNotClearContent, cbs_publisher_instance) {
+	var cbs_settings_instance = this;
+	
+	this.dataWidget = dataWidget;
+	this.usr = 'mp';
+	this.lng = user.locale.name;
+	this.roles = 'r';
+	this.sheetname = this.dataWidget.parameters.pkName;
+	//hard coded testing parameters:
+	//this.sheetname = 'PK_DP_QC_CPT2.report';
+	//this.sheetname = 'pk_dp_qc_supplier4.report';
+	//this.sheetname = 'pk_dp_qc_supplier3.report';
+	//this.sheetname = 'pk_dp_qc_supplier2.report';
+	this.client = null;
+	
+	if (wsParams === undefined || wsParams === null)
+		wsParams = cbsPublisherSettings;
+	
+	// get the clienId from the context
+	dfGetContextValue("faceliftingContext", "selectedClient", function(data) {
+		cbs_settings_instance.client = data;//501;
+		//console.log("context backup: " + cbs_settings_instance.client);
+		
+		// start the widget content creation here, after getting the clientId parameter from the context
+		var wgt_placeolder_id = (cbs_publisher_instance !== undefined) ? cbs_publisher_instance.wgt_placeolder_id : null;
+		if (doNotClearContent !== true) {
+			dataWidget.clearContent();
+			wgt_placeolder_id = Math.uuid( 10,10 );
+			dataWidget.addContent( "<div id=\"" + wgt_placeolder_id + "\" style=\"width:100%;height:auto;\"></div>" );
+		}
+		
+		inPopup = (inPopup === true) ? true : false;
+		cbsPublisherDataQueryExecute(dataWidget, wgt_placeolder_id, inPopup, wsParams, popupCallback, periodTitleSelected, doNotClearContent, cbs_publisher_instance);
+	});
 }
 
 function cbsPublisherDataQueryExecute(dataWidget, wgt_placeolder_id, inPopup, wsParams, popupCallback, periodTitleSelected, doNotClearContent, cbs_publisher_instance) {
+	console.log("cbsPublisherDataQueryExecute: " + wsParams.client);
 	var dq = new DataQuery( "qWidgetPublisher" );
 	
 	if (wsParams !== undefined && wsParams !== null)
@@ -899,28 +943,3 @@ function cbsWidgetPublisherInPopup(wsParamsAsString) {
 	// execute DataQuery
 	var reportItems = cbsPublisherDataQueryExecute(cbsPublisherSettings.dataWidget, null, true, wsParamsJsonObj, popupCallback, null, false, null);
 }
-
-/*
- * Global object to store the data query parameters.
- */
-function CBSPublisherSettings(dataWidget) {
-	var cbs_settings_instance = this;
-	
-	this.dataWidget = dataWidget;
-	this.usr = 'mp';
-	this.lng = user.locale.name;
-	this.roles = 'r';
-	this.sheetname = this.dataWidget.parameters.pkName;
-	//hard coded testing parameters:
-	//this.sheetname = 'PK_DP_QC_CPT2.report';
-	//this.sheetname = 'pk_dp_qc_supplier4.report';
-	//this.sheetname = 'pk_dp_qc_supplier3.report';
-	//this.sheetname = 'pk_dp_qc_supplier2.report';
-	this.client = 501;
-	
-	dfGetContextValue("faceliftingContext", "selectedClient", function(data) {
-		cbs_settings_instance.client = data;
-		console.log("context backup: " + cbs_settings_instance.client);
-	});
-}
-var cbsPublisherSettings = null;
