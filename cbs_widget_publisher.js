@@ -59,7 +59,7 @@ function CBSPublisherSettings(dataWidget, inPopup, wsParams, popupCallback, peri
 		console.log("context backup: " + cbs_settings_instance.client);
 		
 		// start the widget content creation here, after getting the clientId parameter from the context
-		/*var wgt_placeolder_id = (cbs_publisher_instance !== undefined) ? cbs_publisher_instance.wgt_placeolder_id : null;
+		var wgt_placeolder_id = (cbs_publisher_instance !== undefined) ? cbs_publisher_instance.wgt_placeolder_id : null;
 		if (doNotClearContent !== true) {
 			dataWidget.clearContent();
 			wgt_placeolder_id = Math.uuid( 10,10 );
@@ -67,10 +67,10 @@ function CBSPublisherSettings(dataWidget, inPopup, wsParams, popupCallback, peri
 		}
 		
 		inPopup = (inPopup === true) ? true : false;
-		cbsPublisherDataQueryExecute(dataWidget, wgt_placeolder_id, inPopup, wsParams, popupCallback, periodTitleSelected, doNotClearContent, cbs_publisher_instance);*/
+		cbsPublisherDataQueryExecute(dataWidget, wgt_placeolder_id, inPopup, wsParams, popupCallback, periodTitleSelected, doNotClearContent, cbs_publisher_instance);
 	});
 	
-	var wgt_placeolder_id = (cbs_publisher_instance !== undefined) ? cbs_publisher_instance.wgt_placeolder_id : null;
+	/*var wgt_placeolder_id = (cbs_publisher_instance !== undefined) ? cbs_publisher_instance.wgt_placeolder_id : null;
 	if (doNotClearContent !== true) {
 		dataWidget.clearContent();
 		wgt_placeolder_id = Math.uuid( 10,10 );
@@ -78,7 +78,7 @@ function CBSPublisherSettings(dataWidget, inPopup, wsParams, popupCallback, peri
 	}
 	
 	inPopup = (inPopup === true) ? true : false;
-	cbsPublisherDataQueryExecute(dataWidget, wgt_placeolder_id, inPopup, wsParams, popupCallback, periodTitleSelected, doNotClearContent, cbs_publisher_instance);
+	cbsPublisherDataQueryExecute(dataWidget, wgt_placeolder_id, inPopup, wsParams, popupCallback, periodTitleSelected, doNotClearContent, cbs_publisher_instance);*/
 }
 
 function cbsPublisherDataQueryExecute(dataWidget, wgt_placeolder_id, inPopup, wsParams, popupCallback, periodTitleSelected, doNotClearContent, cbs_publisher_instance) {
@@ -86,6 +86,7 @@ function cbsPublisherDataQueryExecute(dataWidget, wgt_placeolder_id, inPopup, ws
 		console.log("cbsPublisherDataQueryExecute: " + wsParams.client);
 	else
 		console.log("cbsPublisherDataQueryExecute: " + wsParams);
+	
 	var dq = new DataQuery( "qWidgetPublisher" );
 	
 	if (wsParams !== undefined && wsParams !== null)
