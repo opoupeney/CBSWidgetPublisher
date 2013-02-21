@@ -82,7 +82,7 @@ function CBSPublisherSettings(dataWidget, inPopup, wsParams, popupCallback, peri
 }
 
 function cbsPublisherDataQueryExecute(dataWidget, wgt_placeolder_id, inPopup, wsParams, popupCallback, periodTitleSelected, doNotClearContent, cbs_publisher_instance) {
-	if (wsParams !== null)
+	if (wsParams !== null && wsParams !== undefined)
 		console.log("wsParams !== null, cbsPublisherDataQueryExecute: " + wsParams.client);
 	else
 		console.log("wsParams == null, cbsPublisherDataQueryExecute: " + wsParams);
