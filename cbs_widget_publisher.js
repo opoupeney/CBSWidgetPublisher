@@ -44,7 +44,7 @@ function CBSPublisherSettings(dataWidget, inPopup, wsParams, popupCallback, peri
 	this.usr = 'mp';
 	this.lng = user.locale.name;
 	this.roles = 'r';
-	this.sheetname = this.dataWidget.parameters.pkName;//'PK_DP_QC_CPT2.report';
+	this.sheetname = this.dataWidget.parameters.pkName;
 	//hard coded testing parameters:
 	//this.sheetname = 'PK_DP_QC_CPT2.report';
 	//this.sheetname = 'pk_dp_qc_supplier4.report';
@@ -83,7 +83,10 @@ function CBSPublisherSettings(dataWidget, inPopup, wsParams, popupCallback, peri
 		
 		inPopup = (inPopup === true) ? true : false;
 		
-		cbsPublisherDataQueryExecute(dataWidget, wgt_placeolder_id, inPopup, cbs_settings_instance, popupCallback, periodTitleSelected, doNotClearContent, cbs_publisher_instance);
+		if (wsParams === undefined || wsParams === null)
+			cbsPublisherDataQueryExecute(dataWidget, wgt_placeolder_id, inPopup, cbs_settings_instance, popupCallback, periodTitleSelected, doNotClearContent, cbs_publisher_instance);
+		else
+			cbsPublisherDataQueryExecute(dataWidget, wgt_placeolder_id, inPopup, wsParams, popupCallback, periodTitleSelected, doNotClearContent, cbs_publisher_instance);
 	});
 	
 	/*var wgt_placeolder_id = (cbs_publisher_instance !== undefined) ? cbs_publisher_instance.wgt_placeolder_id : null;
