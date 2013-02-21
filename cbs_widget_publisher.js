@@ -6,7 +6,9 @@
 /*
  * Notes:
  * 1) Rows number is never more than 2000. So, it's useless to implement 'paging' mechanism for the performance.
- * 2) Probably, it makes sense to add a 'PagingToolbar' but anyway, all the data are downloading in one request. 
+ * 2) Probably, it makes sense to add a 'PagingToolbar' but anyway, all the data are downloading in one request.
+ * 3) ClientID is taken from the context. That means, the appropriate object MUST be in the context. To empty it,
+ *    this object must be put in the context with any negative value , e.g. -1.
  */
 
 /*
@@ -56,7 +58,7 @@ function CBSPublisherSettings(dataWidget, inPopup, wsParams, popupCallback, peri
 		console.log("context backup: " + cbs_settings_instance.client);
 		
 		// start the widget content creation here, after getting the clientId parameter from the context
-		var wgt_placeolder_id = (cbs_publisher_instance !== undefined) ? cbs_publisher_instance.wgt_placeolder_id : null;
+		/*var wgt_placeolder_id = (cbs_publisher_instance !== undefined) ? cbs_publisher_instance.wgt_placeolder_id : null;
 		if (doNotClearContent !== true) {
 			dataWidget.clearContent();
 			wgt_placeolder_id = Math.uuid( 10,10 );
@@ -65,10 +67,10 @@ function CBSPublisherSettings(dataWidget, inPopup, wsParams, popupCallback, peri
 		
 		inPopup = (inPopup === true) ? true : false;
 		
-		cbsPublisherDataQueryExecute(dataWidget, wgt_placeolder_id, inPopup, cbs_settings_instance, popupCallback, periodTitleSelected, doNotClearContent, cbs_publisher_instance);
+		cbsPublisherDataQueryExecute(dataWidget, wgt_placeolder_id, inPopup, cbs_settings_instance, popupCallback, periodTitleSelected, doNotClearContent, cbs_publisher_instance);*/
 	});
 	
-	/*var wgt_placeolder_id = (cbs_publisher_instance !== undefined) ? cbs_publisher_instance.wgt_placeolder_id : null;
+	var wgt_placeolder_id = (cbs_publisher_instance !== undefined) ? cbs_publisher_instance.wgt_placeolder_id : null;
 	if (doNotClearContent !== true) {
 		dataWidget.clearContent();
 		wgt_placeolder_id = Math.uuid( 10,10 );
@@ -76,7 +78,7 @@ function CBSPublisherSettings(dataWidget, inPopup, wsParams, popupCallback, peri
 	}
 	
 	inPopup = (inPopup === true) ? true : false;
-	cbsPublisherDataQueryExecute(dataWidget, wgt_placeolder_id, inPopup, wsParams, popupCallback, periodTitleSelected, doNotClearContent, cbs_publisher_instance);*/
+	cbsPublisherDataQueryExecute(dataWidget, wgt_placeolder_id, inPopup, wsParams, popupCallback, periodTitleSelected, doNotClearContent, cbs_publisher_instance);
 }
 
 function cbsPublisherDataQueryExecute(dataWidget, wgt_placeolder_id, inPopup, wsParams, popupCallback, periodTitleSelected, doNotClearContent, cbs_publisher_instance) {
