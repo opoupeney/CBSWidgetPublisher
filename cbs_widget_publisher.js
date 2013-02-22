@@ -28,9 +28,9 @@ function CBSPublisherSettings(dataWidget, inPopup, wsParams, popupCallback, peri
 	this.usr = 'mp';
 	this.lng = user.locale.name;
 	this.roles = 'r';
-	this.sheetname = this.dataWidget.parameters.pkName;
+	//this.sheetname = this.dataWidget.parameters.pkName;
 	//hard coded testing parameters:
-	//this.sheetname = 'PK_DP_QC_CPT2.report';
+	this.sheetname = 'PK_DP_QC_CPT2.report';
 	//this.sheetname = 'pk_dp_qc_supplier4.report';
 	//this.sheetname = 'pk_dp_qc_supplier3.report';
 	//this.sheetname = 'pk_dp_qc_supplier2.report';
@@ -55,7 +55,7 @@ function CBSPublisherSettings(dataWidget, inPopup, wsParams, popupCallback, peri
 		}
 		
 		//cbs_settings_instance.client = 501;
-		console.log("context backup: " + cbs_settings_instance.client);
+		//console.log("context backup: " + cbs_settings_instance.client);
 		
 		// start the widget content creation here, after getting the clientId parameter from the context
 		var wgt_placeolder_id = (cbs_publisher_instance !== undefined) ? cbs_publisher_instance.wgt_placeolder_id : null;
@@ -75,10 +75,10 @@ function CBSPublisherSettings(dataWidget, inPopup, wsParams, popupCallback, peri
 }
 
 function cbsPublisherDataQueryExecute(dataWidget, wgt_placeolder_id, inPopup, wsParams, popupCallback, periodTitleSelected, doNotClearContent, cbs_publisher_instance) {
-	if (wsParams !== null && wsParams !== undefined)
+	/*if (wsParams !== null && wsParams !== undefined)
 		console.log("wsParams !== null, cbsPublisherDataQueryExecute: " + wsParams.client);
 	else
-		console.log("wsParams == null, cbsPublisherDataQueryExecute: " + wsParams);
+		console.log("wsParams == null, cbsPublisherDataQueryExecute: " + wsParams);*/
 	
 	var dq = new DataQuery( "qWidgetPublisher" );
 	
@@ -88,8 +88,8 @@ function cbsPublisherDataQueryExecute(dataWidget, wgt_placeolder_id, inPopup, ws
 	dq.execute( null, function(dataSet) {
 		var buffer = dataSet.getData();
 		if ( buffer !== null && buffer["coResultVal"] !== null ) {
-			var items = buffer.coResultVal;
-			//var items = buffer[0].coResultVal;
+			//var items = buffer.coResultVal;
+			var items = buffer[0].coResultVal;
 			
 			var publisher = cbs_publisher_instance;
 			if (doNotClearContent !== true) {
@@ -273,6 +273,8 @@ CBSPublisher.prototype.parseItem=function( item, index ) {
         
 		if (colIndex === 2)// TODO: find the column size dynamically
 			this.gridColumns.push( {header: item.c02, dataIndex: "c"+colIndex, flex: 1, renderer: columnRenderer} );
+		else if (colIndex === 1 && this.isItTree === true)
+			this.gridColumns.push( {header: item.c02, dataIndex: "c"+colIndex, renderer: columnRenderer, xtype: 'treecolumn'} );//for the Tree
 		else
 			this.gridColumns.push( {header: item.c02, dataIndex: "c"+colIndex, renderer: columnRenderer} );
 			
@@ -305,24 +307,24 @@ CBSPublisher.prototype.parseItem=function( item, index ) {
 		// main data columns
 		for (var i=1; i<this.gridFields_level_1.length; i++) {
 			row["c"+i] = (i<10) ? item["c0"+i] : item["c"+i];
-			if (i == 1 && item.dimName == "2")
-				row["c"+i] = "=> " + row["c"+i];
-			else if (i == 1 && item.dimName == "3")
-				row["c"+i] = "==> " + row["c"+i];
+			if (row["c"+i] == undefined) row["c"+i] = '';
 		}
+		
+		if (this.isItTree)
+			row.level = parseInt( item.dimName );
 		
 		// add a data to the search details column
 		if ( this.items[index+1] ) {
 			if ((this.items[index+1].dimName.indexOf("1") === 0 || this.items[index+1].dimName.indexOf("2") === 0 || this.items[index+1].dimName.indexOf("3") === 0)
 					&& this.items[index+1].dimName.length > 1)
-				row.caction = "<img src=\"images/studio/bullet/dfs_search_sel.png\" />";
+				row.caction = "<img src='images/studio/bullet/dfs_search_sel.png' />";
 		} else {
 			row.caction="";
 		}
 		
 		// add a data to the icon column
 		if (this.gridColumns[2] !== undefined && this.gridColumns[2].dataIndex === 'rep_icon') {
-			row.rep_icon = "<img src=\"http://88.191.129.143/RestFixture/images/" + item.img + ".png\" />";
+			row.rep_icon = "<img src='http://88.191.129.143/RestFixture/images/" + item.img + ".png' />";
 		}
 		
 		row.long_descr = item.c16;// add a data to the tooltip column
@@ -433,6 +435,13 @@ CBSPublisher.prototype.renderReport=function() {
 	var cbsPublisher_instance = this;
 	var items = new Array();
 	
+	// main title
+	items.push({
+		itemId: "mainTitle",
+		border: false,
+		html: "<b><p style='font-size:20px'>" + this.reportName + "</p></b>"
+	});
+	
 	// zero level - normal form
 	if (this.normalFormLevel_0.length > 0) {
 		var html = "<table style='font-size:12px;' width='100%'><tr>";// put data in 1 row
@@ -446,6 +455,7 @@ CBSPublisher.prototype.renderReport=function() {
 			html: html
 		});
 		
+		items.push({ xtype: "splitter" });// splitter between the levels
 		items.push({ xtype: "splitter" });// splitter between the levels
 	}
 	
@@ -512,26 +522,48 @@ CBSPublisher.prototype.renderReport=function() {
 		items.push({ xtype: "splitter" });// splitter between the levels
 	}
 	
-	// first level - grid:
+	// FIRST level - grid or tree
 	// 1) rearrange the icon column position: it must always be the second visible column
 	if (this.gridColumns[2] !== undefined && this.gridColumns[2].dataIndex === 'rep_icon') {
 		var iconCol = this.gridColumns[2];
 		this.gridColumns[2] = this.gridColumns[3];
 		this.gridColumns[3] = iconCol;
 	}
-	// 2) create and add a grid item
-	items.push({
-		xtype: "grid",
-		itemId: "cbsPublisherMainGrid",
-    	columns: this.gridColumns,
-	    store: Ext.create("Ext.data.Store", { fields: this.gridFields_level_1, data: this.gridData_level_1 }),
-    	flex: 1,
-    	listeners: {
-	    	itemclick: function(grid, record, item, index, e) {
-	    		cbsPublisher_instance.renderTab(record.get('row_id'), this, this.ownerCt);// second level - tabs
+	
+	// 2) create and add a grid or tree item
+	if (this.isItTree) {
+		// prepare the data for the TreeStore and get them as a JSON object
+		var store_def_as_json = cbsPublisherTree.getTreeAsJson(this.gridData_level_1);
+		
+		// Create a Tree component usig the prepared data
+		items.push({
+			xtype: "treepanel",
+			itemId: "cbsPublisherMainTree",
+			useArrows: true,
+			rootVisible: false,
+	    	columns: this.gridColumns,
+		    store: Ext.create("Ext.data.TreeStore", { fields: this.gridFields_level_1, root: store_def_as_json }),
+		    listeners: {
+		    	itemclick: function(view, record, item, index, e) {
+		    		cbsPublisher_instance.renderTab(record.get('row_id'), this, this.ownerCt);// second level - tabs
+		    	}
 	    	}
-    	}
-	});
+		});
+	}
+	else {
+		items.push({
+			xtype: "grid",
+			itemId: "cbsPublisherMainGrid",
+	    	columns: this.gridColumns,
+		    store: Ext.create("Ext.data.Store", { fields: this.gridFields_level_1, data: this.gridData_level_1 }),
+	    	flex: 1,
+	    	listeners: {
+		    	itemclick: function(grid, record, item, index, e) {
+		    		cbsPublisher_instance.renderTab(record.get('row_id'), this, this.ownerCt);// second level - tabs
+		    	}
+	    	}
+		});
+	}
 	
 	// first level - charts
 	var charts = this.buildCharts(0, 0);
@@ -558,7 +590,7 @@ CBSPublisher.prototype.renderReport=function() {
 	
 	if (this.inPopup == false) {// main panel
 		this.reportPanel = Ext.create('Ext.panel.Panel', {
-			title: this.reportName,
+			//title: this.reportName,
 	    	width: 800,//1100,
 		    height: 600,//800,
 	    	renderTo: this.wgt_placeolder_id,
@@ -619,9 +651,15 @@ CBSPublisher.prototype.refreshReport=function() {
 	}
 	
 	// reload the grid with new data
-	var mainGrid = this.reportPanel.getComponent("cbsPublisherMainGrid");
-	var newStore = Ext.create("Ext.data.Store", { fields: this.gridFields_level_1, data: this.gridData_level_1 });
-	mainGrid.reconfigure(newStore);
+	if (this.isItTree) {
+		var mainTree = this.reportPanel.getComponent("cbsPublisherMainTree");
+		var store_def_as_json = cbsPublisherTree.getTreeAsJson(this.gridData_level_1);
+		mainTree.setRootNode(store_def_as_json);
+	} else {
+		var mainGrid = this.reportPanel.getComponent("cbsPublisherMainGrid");
+		var newStore = Ext.create("Ext.data.Store", { fields: this.gridFields_level_1, data: this.gridData_level_1 });
+		mainGrid.reconfigure(newStore);
+	}
 }
 
 /*
@@ -930,6 +968,8 @@ function cbsWidgetPublisherInPopup(wsParamsAsString) {
 				"}" +
 			"</style>");
 		
+		reportItems.splice(0, 1);//remove title
+		
 		var popupWindow = Ext.create('Ext.window.Window', {
 			title: cbsPublisher_instance.reportName,
 		    modal: true,
@@ -950,3 +990,101 @@ function cbsWidgetPublisherInPopup(wsParamsAsString) {
 	// execute DataQuery
 	var reportItems = cbsPublisherDataQueryExecute(cbsPublisherSettings.dataWidget, null, true, wsParamsJsonObj, popupCallback, null, false, null);
 }
+
+var cbsPublisherTree = (function() {
+	var getTreeAsJson = function(stream) {
+		/*
+		 * Tree node Object (uses Composite Design Pattern).
+		 */
+		function TreeNode(dataColumns, level) {
+			// create main data columns
+			if (dataColumns !== 'root') {
+				for (var propName in dataColumns) {
+					if (dataColumns.hasOwnProperty(propName)) {
+						if (propName !== 'level')
+							this[propName] = dataColumns[propName];
+					}
+				}
+			} else {
+				this.text = dataColumns;
+			}
+				
+			this.level = level;
+			this.children = new Array();
+			this.parentNode = null;
+			
+			this.addChild = function(child) {
+				child.parentNode = this;
+				this.children.push(child);
+			}
+			
+			this.getParentOfLevel = function(level) {
+				if (this.parentNode.level < level)
+					return this.parentNode;
+				else
+					return this.parentNode.getParentOfLevel(level);
+			}
+			
+			this.getTreeAsStoreDef = function() {
+				var result = null;
+				
+				if (this.text !== undefined)
+					result = "{\"text\":\".\"";
+				else {
+					result = "{";
+					for (var propName in this) {
+						if (dataColumns.hasOwnProperty(propName)) {
+							if (propName !== 'level') {
+								result = result + "\"" + propName + "\":\"" + this[propName] + "\", ";
+							}
+						}
+					}
+					result = result.substring(0, result.length-2);
+				}
+				
+				if (this.children.length == 0) {
+					result = result + ", \"leaf\":true, \"iconCls\":\"x-tree-noicon\"}";
+				}
+				else {
+					result = result + ", \"children\":[";
+					for (var idx = 0; idx < this.children.length; idx++) {
+						result = result + this.children[idx].getTreeAsStoreDef();
+						if (idx !== (this.children.length-1))
+							 result = result + ", ";
+					}
+					result = result + "], \"iconCls\":\"x-tree-noicon\"}";
+				}
+				return result;
+			}
+		}
+		
+		// Transform the stream array with 'level' attributes to the tree
+		var currentNode = new TreeNode('root', 0);
+		var rootNode = currentNode;
+		
+		for (var idx = 0; idx < stream.length; idx++) {
+			var nextNode = new TreeNode(stream[idx], stream[idx].level);
+			
+			if (currentNode.level < nextNode.level) {
+				currentNode.addChild(nextNode);
+			}
+			else if (currentNode.level == nextNode.level) {
+				currentNode.parentNode.addChild(nextNode);//add to parent
+			}
+			else if (currentNode.level > nextNode.level) {
+				var appropriateParent = currentNode.getParentOfLevel(nextNode.level);//look for the parent with the same level
+				appropriateParent.addChild(nextNode);
+			}
+			currentNode = nextNode;
+		}
+		
+		// Get the Tree as a JSON object
+		var jsonObjectTree = JSON.parse( rootNode.getTreeAsStoreDef() );
+		
+		return jsonObjectTree;
+	}
+	
+	return {
+		getTreeAsJson : getTreeAsJson
+	};
+})();
