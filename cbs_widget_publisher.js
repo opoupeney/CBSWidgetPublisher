@@ -218,17 +218,17 @@ CBSPublisher.prototype.executeFromExternalCall = function() {
 	//this.cbsWsSettings.sheetname = 'pk_dp_encours.get_encours_cli';//1 - Good to test and to show
 	//this.cbsWsSettings.sheetname = 'pk_dp_signalitique.F_get_signcli';//2
 	//this.cbsWsSettings.sheetname = 'pk_dp_freshmoney.f_get_freshcli';//3 - Good to test
-	this.cbsWsSettings.sheetname = 'pk_dp_statoper.get_opers_cli';//4 - TO CHECK - BAR CHARTS?!
+	//this.cbsWsSettings.sheetname = 'pk_dp_statoper.get_opers_cli';//4 - Bar charts
 	//this.cbsWsSettings.sheetname = 'pk_dp_dastat.f_get_client';//5 - GOOD TO SHOW,
 		//but there is a pb: click on all tabs till 'change, click tab with second chart & click back tab with first - everything disappears
 	//this.cbsWsSettings.sheetname = 'pk_dp_depass.get_depass_cli';//6 - optional
 	//this.cbsWsSettings.sheetname = 'pk_dp_impas.f_get_impascli';//7
-	//this.cbsWsSettings.sheetname = 'pk_dp_bale2.f_get_client';//8 - FIX THE SIZE!!!
+	//this.cbsWsSettings.sheetname = 'pk_dp_bale2.f_get_client';//8
 	//this.cbsWsSettings.sheetname = 'pk_dp_oper.get_clioper';//9
-	//this.cbsWsSettings.sheetname = 'pk_dp_dpoper.get_clioper_new';//10 - MULTI STEPS! Try FIRST and SECOND icons!
+	//this.cbsWsSettings.sheetname = 'pk_dp_dpoper.get_clioper_new';//10
 	//this.cbsWsSettings.sheetname = 'pk_dp_roles.F_get_roles';// ERROR - FUNCTIONAL
 	//this.cbsWsSettings.sheetname = 'pk_dp_groupes.F_get_groupes';//11 - EMPTY
-	//this.cbsWsSettings.sheetname = 'pk_dp_freshmoney.f_get_freshrm';// - TO FIX!
+	this.cbsWsSettings.sheetname = 'pk_dp_freshmoney.f_get_freshrm';// - TO FIX!
 	
 	// OLD FAKE REPORTS
 	//this.cbsWsSettings.sheetname = 'PK_DP_QC_CPT2.report';
@@ -443,6 +443,7 @@ CBSPublisher.prototype.parseItem = function(item, index) {
 		}
 		
 		this.dimensionLinks.push({ title: item.c02, period: item.c01, wsParams: wsParamsJsonObj });
+		this.dimensionLinks.label = item.c05;
 	}
 	else if (Ext.Array.contains(this.POSSIBLE_TREE_LEVELS, item.dimName) && item.dimName.length === 1) {
 		var row = new Object();
@@ -624,7 +625,10 @@ CBSPublisher.prototype.calcCompsSize = function() {
 	
 	var mainTreeGrid = (this.isItTree) ? this.reportPanel.getComponent(this.mainTreeId) : this.reportPanel.getComponent(this.mainGridId);
 	var secondLevelTabs = this.reportPanel.getComponent(this.secondLevelTabsId);
-	var collapsedForm = this.reportPanel.getComponent(this.collapsedFormAndChartsPanelId).getComponent(this.collapsedFormId);
+	var collapsedFormAndChartsPanel = this.reportPanel.getComponent(this.collapsedFormAndChartsPanelId);
+	var collapsedForm = null;
+	if (collapsedFormAndChartsPanel)
+		collapsedForm = this.reportPanel.getComponent(this.collapsedFormAndChartsPanelId).getComponent(this.collapsedFormId);
 	
 	if (secondLevelTabs) {
 		if (mainTreeGrid) {
@@ -643,7 +647,9 @@ CBSPublisher.prototype.calcCompsSize = function() {
 			mainTreeGrid.setHeight(null);// adjust the height of the main tree/grid - 'null' means 'auto'
 	}
 	
-	var chartsContainer = this.reportPanel.getComponent(this.collapsedFormAndChartsPanelId).getComponent(this.chartsPanelId);
+	var chartsContainer = null;
+	if (collapsedFormAndChartsPanel)
+		chartsContainer = this.reportPanel.getComponent(this.collapsedFormAndChartsPanelId).getComponent(this.chartsPanelId);
 	
 	if (collapsedForm && mainTreeGrid && secondLevelTabs) {
 		var formOrChartHeight = (collapsedForm) ? collapsedForm.getHeight() : chartsContainer.getHeight();
@@ -651,9 +657,9 @@ CBSPublisher.prototype.calcCompsSize = function() {
 		secondLevelTabs.setHeight((this.maxWidgetHeight - formOrChartHeight) / 2 - 20);
 	}
 	
-	if (chartsContainer.isHidden())
+	if (chartsContainer && chartsContainer.isHidden())
 		this.calcCollapsedFormAndChartsSize(false);
-	else
+	else if (chartsContainer && chartsContainer.isHidden() === false)
 		this.calcCollapsedFormAndChartsSize(true);
 	
 	if (mainTreeGrid && collapsedForm === undefined && secondLevelTabs === undefined)
@@ -710,11 +716,7 @@ CBSPublisher.prototype.renderReport = function() {
 	
 	// zero level - normal form
 	if (this.normalFormLevel_0.length > 0) {
-		var html = "<table style='font-size:12px;' width='100%'><tr>";// put data in 1 row
-		for (var i = 0; i < this.normalFormLevel_0.length; i++) {
-			html = html + "<td>" + this.normalFormLevel_0[i].label + ": </td><td><b>" + this.normalFormLevel_0[i].data + "</b></td>";
-		}
-		html += "</tr></table>";
+		var html = this.getHtmlForNormalForm();
 		
 		panel_items.push({
 			itemId: this.normalFormId,
@@ -731,21 +733,7 @@ CBSPublisher.prototype.renderReport = function() {
 	// zero level - collapsed form
 	var collapsedFormAndChartsPanelItems = new Array();
 	if (this.collapsedFormLevel_0.length > 0) {
-		var html = "<table style='font-size:12px; border-spacing: 2 !important; border-collapse: separate !important;' width='100%'>";// put data in several rows, 3 columns
-		for (var i = 0; i < this.collapsedFormLevel_0.length; i++) {
-			var tableRowTmpl = "<td>{0}</td><td><b>{1}</b></td>";
-			
-			var tableRow = null;
-			tableRow = Ext.String.format(tableRowTmpl, this.collapsedFormLevel_0[i].label, this.collapsedFormLevel_0[i].data);
-			if ((i + 1) < this.collapsedFormLevel_0.length)
-				tableRow += Ext.String.format(tableRowTmpl, this.collapsedFormLevel_0[++i].label, this.collapsedFormLevel_0[i].data);
-			if ((i + 1) < this.collapsedFormLevel_0.length)
-				tableRow += Ext.String.format(tableRowTmpl, this.collapsedFormLevel_0[++i].label, this.collapsedFormLevel_0[i].data);
-				
-			if (tableRow !== null)
-				html = html + "<tr>" + tableRow + "</tr>";
-		}
-		html += "</table>";
+		var html = this.getHtmlForCollapsedForm();
 		
 		collapsedFormAndChartsPanelItems.push({
 			itemId: this.collapsedFormId,
@@ -806,7 +794,7 @@ CBSPublisher.prototype.renderReport = function() {
 			maxWidth: initialSize.dimensionLinksMaxWidth,
 			labelWidth: initialSize.dimensionLinksLabelMaxWidth,
 			xtype: 'combobox',
-		    fieldLabel: 'Period',
+		    fieldLabel: this.dimensionLinks.label,
 		    store: dimensionDataStore,
 		    queryMode: 'local',
 		    displayField: 'dimTitle',
@@ -901,6 +889,34 @@ CBSPublisher.prototype.renderReport = function() {
 	closeCbsWaitMessage();
 }
 
+CBSPublisher.prototype.getHtmlForNormalForm = function() {
+	var html = "<table style='font-size:12px;' width='100%'><tr>";// put data in 1 row
+	for (var i = 0; i < this.normalFormLevel_0.length; i++) {
+		html = html + "<td>" + this.normalFormLevel_0[i].label + ": </td><td><b>" + this.normalFormLevel_0[i].data + "</b></td>";
+	}
+	html += "</tr></table>";
+	return html;
+}
+
+CBSPublisher.prototype.getHtmlForCollapsedForm = function() {
+	var html = "<table style='font-size:12px; border-spacing: 2 !important; border-collapse: separate !important;' width='100%'>";// put data in several rows, 3 columns
+	for (var i = 0; i < this.collapsedFormLevel_0.length; i++) {
+		var tableRowTmpl = "<td>{0}</td><td><b>{1}</b></td>";
+		
+		var tableRow = null;
+		tableRow = Ext.String.format(tableRowTmpl, this.collapsedFormLevel_0[i].label, this.collapsedFormLevel_0[i].data);
+		if ((i + 1) < this.collapsedFormLevel_0.length)
+			tableRow += Ext.String.format(tableRowTmpl, this.collapsedFormLevel_0[++i].label, this.collapsedFormLevel_0[i].data);
+		if ((i + 1) < this.collapsedFormLevel_0.length)
+			tableRow += Ext.String.format(tableRowTmpl, this.collapsedFormLevel_0[++i].label, this.collapsedFormLevel_0[i].data);
+			
+		if (tableRow !== null)
+			html = html + "<tr>" + tableRow + "</tr>";
+	}
+	html += "</table>";
+	return html;
+}
+
 CBSPublisher.prototype.optimizeColumnsSize = function(gridColumns) {
 	var largestColumn = {index: 0, width: 0};
 	for (var i = 0; i < gridColumns.length; i++) {
@@ -954,23 +970,8 @@ CBSPublisher.prototype.gridTreeClickAction = function(event, record) {
 }
 
 CBSPublisher.prototype.refreshReport = function() {
-	// select the dimension link if the report was reloaded
-	if (this.dimensionLinks.length > 0) {
-		var dimensionsCombo = this.reportPanel.getComponent(this.periodDimensionsId);
-	}
-	
-	// remove all components except title, dimension links, error message and main tree/grid
-	for (var i = 0; i < this.reportPanel.items.length; i++) {
-		var compItemId = this.reportPanel.items.getAt(i).getItemId();
-		if (compItemId !== this.mainTitlePanelId && compItemId !== this.periodDimensionsId &&
-				compItemId !== this.errorMessageId && compItemId !== this.mainTreeId && compItemId !== this.mainGridId)
-		{
-			this.reportPanel.remove( this.reportPanel.getComponent(compItemId) );
-		}
-	}
-	// somehow, second leel tabs & charts are not in the panel.items(), so delete them personally
+	// remove tabs
 	this.reportPanel.remove( this.reportPanel.getComponent(this.secondLevelTabsId) );
-	this.reportPanel.remove( this.reportPanel.getComponent(this.chartsPanelId) );
 	
 	// treat error message
 	if (this.error.exists == true) {
@@ -1007,21 +1008,65 @@ CBSPublisher.prototype.refreshReport = function() {
 				comp.show();
 			}
 		}
-	}
 	
-	// reload the tree or grid with new data
-	if (this.isItTree) {
-		var mainTree = this.reportPanel.getComponent(this.mainTreeId);
-		var store_def_as_json = cbsPublisherTree.getTreeAsJson(this.gridData_level_1);
-		mainTree.setRootNode(store_def_as_json);
-	} else {
-		var mainGrid = this.reportPanel.getComponent(this.mainGridId);
-		var newStore = Ext.create("Ext.data.Store", { fields: this.gridFields_level_1, data: this.gridData_level_1 });
-		mainGrid.reconfigure(newStore);
+		// UPDATE THE COMPONENTS WITH NEW CONTENT:
+		// zero level - normal form
+		if (this.normalFormLevel_0.length > 0) {
+			var html = this.getHtmlForNormalForm();
+			var normalForm = this.reportPanel.getComponent(this.normalFormId);
+			normalForm.update(html);
+		}
+		
+		// first level - charts: build
+		var collapsedFormAndChartsPanel = this.reportPanel.getComponent(this.collapsedFormAndChartsPanelId);
+		var charts = this.buildCharts(1, 0);
+		
+		// zero level - collapsed form
+		var collapsedFormAndChartsPanelItems = new Array();
+		if (this.collapsedFormLevel_0.length > 0) {
+			var html = this.getHtmlForCollapsedForm();
+			
+			if (collapsedFormAndChartsPanel) {
+				var collapsedForm = this.reportPanel.getComponent(this.collapsedFormAndChartsPanelId).getComponent(this.collapsedFormId);
+				collapsedForm.update(html);
+			}
+		}
+		
+		// first level - charts
+		var chartItems = new Array();
+		for (var i = 0; i < charts.length; i++) {
+			chartItems.push( charts[i] );
+		}
+		if (collapsedFormAndChartsPanel) {
+			var chartsContainer = this.reportPanel.getComponent(this.collapsedFormAndChartsPanelId).getComponent(this.chartsPanelId);
+			if (chartsContainer) {
+				chartsContainer.removeAll();
+				chartsContainer.add(chartItems);
+				if (charts.length === 0)
+					chartsContainer.hidden = true;
+			}
+		}
+		
+		// reload the tree or grid with new data
+		if (this.isItTree) {
+			var mainTree = this.reportPanel.getComponent(this.mainTreeId);
+			if (mainTree) {
+				var store_def_as_json = cbsPublisherTree.getTreeAsJson(this.gridData_level_1);
+				mainTree.setRootNode(store_def_as_json);
+			}
+		} else {
+			var mainGrid = this.reportPanel.getComponent(this.mainGridId);
+			if (mainGrid) {
+				var newStore = Ext.create("Ext.data.Store", { fields: this.gridFields_level_1, data: this.gridData_level_1 });
+				mainGrid.reconfigure(newStore);
+			}
+		}
+		
+		this.buildSecondLevelTabs("0", 0);// second level - tabs
 	}
 	
 	this.calcCompsSize();// adjust the components size
-	this.reportPanel.doLayout();// for the case if some second level components were removed
+	closeCbsWaitMessage();
 }
 
 /*
@@ -1087,6 +1132,7 @@ CBSPublisher.prototype.buildSecondLevelTabs = function(treeIndex, parentIndex) {
 	//console.log(this);
 	var cbs_publisher_instance = this;
 	var tabIndex = 0;
+	var tabIdPrefix = "cbsSecondLevelTabIdPrefix_" + this.wgt_placeholder_id;
 	
 	if (this.gridsOrFormsLevel_2["reportName_" + treeIndex + tabIndex]) {
 		var parseContinue = true;
@@ -1106,6 +1152,7 @@ CBSPublisher.prototype.buildSecondLevelTabs = function(treeIndex, parentIndex) {
 					if (gridData.length > 0) {
 						var item = {
 							title: this.gridsOrFormsLevel_2["reportName_" + treeIndex + tabIndex],
+							itemId: tabIdPrefix + '_' + treeIndex + tabIndex,
 							forceFit: true,
 		        			xtype: "grid",
 		        			columns: this.gridsOrFormsLevel_2["gridColumns_" + treeIndex + tabIndex],
@@ -1146,6 +1193,7 @@ CBSPublisher.prototype.buildSecondLevelTabs = function(treeIndex, parentIndex) {
 					
 					var item = {
 						title: this.gridsOrFormsLevel_2["reportName_" + treeIndex + tabIndex],
+						itemId: tabIdPrefix + '_' + treeIndex + tabIndex,
 						padding: 10,
 						html: html
 		    		};
@@ -1158,24 +1206,44 @@ CBSPublisher.prototype.buildSecondLevelTabs = function(treeIndex, parentIndex) {
 			tabIndex++;
 		}
 		
-		// build the Tab container
-		var newTabs = null;
-		if (items.length > 0) {
-			newTabs = Ext.create('Ext.tab.Panel', {// tabs
-				itemId: this.secondLevelTabsId,
-				plain: true,
-				items: items
-			});
-		}
-		
 		// remove previous tabs if exists
-		if ( this.reportPanel.getComponent(this.secondLevelTabsId) ) {
-			this.reportPanel.remove( this.reportPanel.getComponent(this.secondLevelTabsId) );
+		var prevTabContainer = this.reportPanel.getComponent(this.secondLevelTabsId);
+		if (prevTabContainer) {
+			var firstLevelTabsExist = false;
+			for (var treeIdx = 0; treeIdx < this.POSSIBLE_TREE_LEVELS.length; treeIdx++) {
+				if (this.POSSIBLE_TREE_LEVELS[treeIdx] !== '0') {// remove second level tabs
+					for (var tabIdx = 0; tabIdx < 8; tabIdx++) {
+						var oldTab = prevTabContainer.getComponent(tabIdPrefix + '_' + this.POSSIBLE_TREE_LEVELS[treeIdx] + tabIdx);
+						if (oldTab)
+							prevTabContainer.remove(oldTab);
+					}
+				}
+				else
+					firstLevelTabsExist = true;
+			}
+				
+			if (firstLevelTabsExist === false)// remove the whole container if there are no first level tabs
+				this.reportPanel.remove(prevTab);
 		}
 		
 		// add new tabs
-		if (newTabs !== null) {
-			this.reportPanel.add(newTabs);
+		if (items.length > 0) {
+			var currentTabContainer = this.reportPanel.getComponent(this.secondLevelTabsId);
+			if (currentTabContainer) {// there are first level tabs
+				for (var i = 0; i < items.length; i++) {
+					currentTabContainer.add(items[i]);
+				}
+				currentTabContainer.setActiveTab( currentTabContainer.getComponent(items[0].itemId) );
+			}
+			else {// there are no first level tabs, not even container
+				var newTabContainer = Ext.create('Ext.tab.Panel', {
+					itemId: this.secondLevelTabsId,
+					plain: true,
+					items: items
+				});
+				this.reportPanel.add(newTabContainer);
+			}
+			
 			return true;
 		}
 		else
