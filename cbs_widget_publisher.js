@@ -42,7 +42,8 @@ function showCbsWaitMessage() {
 	});
 }
 function closeCbsWaitMessage() {
-	PLEASE_WAIT_CBS_WINDOW.hide();
+	if (PLEASE_WAIT_CBS_WINDOW)
+		PLEASE_WAIT_CBS_WINDOW.hide();
 }
 
 /*
@@ -52,20 +53,22 @@ function closeCbsWaitMessage() {
 function cbsWidgetPublisherNextScreen(wsParamsAsString, prevPlaceholderInfo, dataWidgetName) {
 	// preparing the WS parameters JSON object
 	var wsParamsJsonObj = new Object();
-	var wsParamsArray = wsParamsAsString.split(';');
+	var wsParamsArray = wsParamsAsString.split('|');
+	var wsGeneralParamsArray = wsParamsArray[0].split(';');
+	var wsPassedParamsArray = wsParamsArray[1].split(';');
 	
-	wsParamsJsonObj.usr = wsParamsArray[0];
-	wsParamsJsonObj.lng = wsParamsArray[1];
-	wsParamsJsonObj.roles = wsParamsArray[2];
+	wsParamsJsonObj.usr = wsGeneralParamsArray[0];
+	wsParamsJsonObj.lng = wsGeneralParamsArray[1];
+	wsParamsJsonObj.roles = wsGeneralParamsArray[2];
 	wsParamsJsonObj.newScreen = true;
-	wsParamsJsonObj.sheetname = wsParamsArray[5];
-	wsParamsJsonObj.client = wsParamsArray[6];
+	wsParamsJsonObj.sheetname = wsPassedParamsArray[2];
+	wsParamsJsonObj.client = wsPassedParamsArray[3];
 	wsParamsJsonObj.dataWidgetName = dataWidgetName;
-	//var report = wsParamsArray[7];// for the future - to say that this is a publisher report
+	//var report = wsPassedParamsArray[4];// for the future - to say that this is a publisher report
 	
 	// parameters 'p1'...'p5'
-	for (var i = 8; i < wsParamsArray.length; i++) {
-		wsParamsJsonObj["p" + (i-7)] = wsParamsArray[i];
+	for (var i = 5; i < wsPassedParamsArray.length; i++) {
+		wsParamsJsonObj["p" + (i-4)] = wsPassedParamsArray[i];
 	}
 	
 	$("#" + prevPlaceholderInfo.IDs[prevPlaceholderInfo.IDs.length-1]).hide("slide", { direction: "left" }, 500, function() {});// hide previous
@@ -73,7 +76,6 @@ function cbsWidgetPublisherNextScreen(wsParamsAsString, prevPlaceholderInfo, dat
 	// new publisher, new screen - e.g. click on the Grid row
 	var wgt_placeholder_id = Math.uuid( 10,10 );
 	var dataWidget = dfGetDataWidget(dataWidgetName);
-	console.log(dataWidgetName);
 	dataWidget.addContent("<div id=\"" + wgt_placeholder_id + "\" style=\"width:100%;height:auto;\"></div>");
 	
 	showCbsWaitMessage();
@@ -98,7 +100,7 @@ function CbsWsSettings() {
 CbsWsSettings.prototype.type="CbsWsSettings";
 
 /*
- * Main class - creates and dispalys all kind of reports.
+ * Main class - creates and dispalys all kinds of reports.
  */
 function CBSPublisher(dataWidget, wgt_placeholder_id, cbsWsSettings) {
 	this.init(dataWidget, wgt_placeholder_id, cbsWsSettings);
@@ -111,8 +113,14 @@ function CBSPublisher(dataWidget, wgt_placeholder_id, cbsWsSettings) {
 CBSPublisher.prototype.type="CBSPublisher";
 
 CBSPublisher.prototype.init = function(dataWidget, wgt_placeholder_id, cbsWsSettings) {
-	// general data
+	// constants
 	this.DATA_QUERY_NAME = "qWidgetPublisher2";
+	//this.DATA_QUERY_NAME = "qCbsFreshMoney";
+	this.CONTEXT_VALUE = {object_name: "faceliftingContext", object_value: "selectedClient"};
+	this.IMAGES_URL = "http://88.191.129.143/RestFixture/images/";
+	this.GENERATE_WIDGET_EVENT = "generateEvent";
+	
+	// general data
 	this.dataWidget = dataWidget;
 	this.wgt_placeholder_id = wgt_placeholder_id;
 	this.cbsWsSettings = cbsWsSettings;
@@ -166,10 +174,9 @@ CBSPublisher.prototype.init = function(dataWidget, wgt_placeholder_id, cbsWsSett
 		this.gridsOrFormsLevel_2.reportName_11, 12, 13... etc.
 	*/
 	
-	// temporary variable mapping the second and first levels data
-	this.lastParentIndex = 0;
+	this.lastParentIndex = 0;// temporary variable mapping the second and first levels data
 	
-	// charts panel id
+	// graphical component ids
 	this.mainPanelId = "cbsPublisherMainPanel_" + this.wgt_placeholder_id;
 	this.mainTitleId = "cbsPublisherMainTitle_" + this.wgt_placeholder_id;
 	this.mainTitlePanelId = "cbsPublisherMainTitlePanel_" + this.wgt_placeholder_id;
@@ -183,6 +190,7 @@ CBSPublisher.prototype.init = function(dataWidget, wgt_placeholder_id, cbsWsSett
 	this.chartsPanelId = "cbsPublisherChartsPanel_" + this.wgt_placeholder_id;
 	this.secondLevelTabsId = "cbsPublisherSecondLevelTabPanel_" + this.wgt_placeholder_id;
 	this.nextScreenIconId = "nextScreenIcon_" + this.wgt_placeholder_id;
+	this.contextMenuIconId = "contextMenuIcon_" + this.wgt_placeholder_id;
 	this.searchDetailsIconId = "searchDetailsIcon_" + this.wgt_placeholder_id;
 	
 	this.POSSIBLE_TREE_LEVELS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
@@ -204,10 +212,10 @@ CBSPublisher.prototype.executeFromExternalCall = function() {
 	
 	// init the WsSettings using externally passed parameters
 	this.cbsWsSettings.usr = 'MPELPEL';//real data
-	//this.cbsWsSettings.usr = 'mp';//fake data
 	this.cbsWsSettings.lng = user.locale.name;
 	this.cbsWsSettings.roles = 'r';
 	this.cbsWsSettings.client = '021249';
+	//this.cbsWsSettings.client = '741017';
 	//this.cbsWsSettings.client = '723867';
 	//this.cbsWsSettings.client = null;
 	
@@ -215,7 +223,7 @@ CBSPublisher.prototype.executeFromExternalCall = function() {
 	
 	// REAL DATA
 	//this.cbsWsSettings.sheetname = 'pk_dp_client.f_get_synthese_client';//0
-	//this.cbsWsSettings.sheetname = 'pk_dp_encours.get_encours_cli';//1 - Good to test and to show
+	this.cbsWsSettings.sheetname = 'pk_dp_encours.get_encours_cli';//1 - Good to test and to show
 	//this.cbsWsSettings.sheetname = 'pk_dp_signalitique.F_get_signcli';//2
 	//this.cbsWsSettings.sheetname = 'pk_dp_freshmoney.f_get_freshcli';//3 - Good to test
 	//this.cbsWsSettings.sheetname = 'pk_dp_statoper.get_opers_cli';//4 - Bar charts
@@ -227,8 +235,8 @@ CBSPublisher.prototype.executeFromExternalCall = function() {
 	//this.cbsWsSettings.sheetname = 'pk_dp_oper.get_clioper';//9
 	//this.cbsWsSettings.sheetname = 'pk_dp_dpoper.get_clioper_new';//10
 	//this.cbsWsSettings.sheetname = 'pk_dp_roles.F_get_roles';// ERROR - FUNCTIONAL
-	//this.cbsWsSettings.sheetname = 'pk_dp_groupes.F_get_groupes';//11 - EMPTY
-	this.cbsWsSettings.sheetname = 'pk_dp_freshmoney.f_get_freshrm';// - TO FIX!
+	//this.cbsWsSettings.sheetname = 'pk_dp_groupes.F_get_groupes';//11
+	//this.cbsWsSettings.sheetname = 'pk_dp_freshmoney.f_get_freshrm';//12
 	
 	// OLD FAKE REPORTS
 	//this.cbsWsSettings.sheetname = 'PK_DP_QC_CPT2.report';
@@ -242,10 +250,10 @@ CBSPublisher.prototype.executeFromExternalCall = function() {
 		var json_obj = JSON.parse(data);
 		if (json_obj instanceof Array) {// get the clienId
 			for (var i=0; i<json_obj.length; i++) {
-				if (json_obj[i]["object"]=="faceliftingContext") {
+				if (json_obj[i]["object"]==this.CONTEXT_VALUE.object_name) {
 					var sel_json_obj = json_obj[i];
 					for (var j=0; j<sel_json_obj.properties.length; j++) {
-						if (sel_json_obj.properties[j]["name"]=="selectedClient") {
+						if (sel_json_obj.properties[j]["name"]==this.CONTEXT_VALUE.object_value) {
 							cbs_publisher_instance.cbsWsSettings.client = sel_json_obj.properties[j]["value"];
 							break;
 						}
@@ -315,40 +323,6 @@ CBSPublisher.prototype.buildReport = function() {
 CBSPublisher.prototype.parseItem = function(item, index) {
 	var cbs_publisher_instance = this;
 	var nextIndex = index+1;
-	
-	// function to add the data for the "NextScreen icon" - used later when parsing...
-	var buildNextScreenLink = function(item, row) {
-		if (item.c19 || item.c20) {
-			var firstNextScreenIcon = item.c19;
-			var secondNextScreenIcon = item.c20;
-			
-			var addNextScreenIcon = function(nextScreenIconDef) {
-				if (nextScreenIconDef == undefined || nextScreenIconDef == null)
-					return;
-				
-				var wsParamsArray = nextScreenIconDef.split(';');
-				
-				if (row.caction == undefined || row.caction == null) {
-					row.caction = "";
-				}
-				
-				// add WS params that are not in nextScreenIconDef
-				nextScreenIconDef = cbs_publisher_instance.cbsWsSettings.usr + ";" + cbs_publisher_instance.cbsWsSettings.lng + ";" +
-						cbs_publisher_instance.cbsWsSettings.roles + ";" + nextScreenIconDef;
-				
-				// form the final link with parameters
-				row.caction = row.caction + "<img id='" + cbs_publisher_instance.nextScreenIconId + "'" +
-					" src='http://88.191.129.143/RestFixture/images/" + wsParamsArray[0] + ".png' title='" + wsParamsArray[1] +
-					"' next_screen_def='" + nextScreenIconDef + "'/>";
-			};
-			
-			if (firstNextScreenIcon !== undefined)
-				addNextScreenIcon(firstNextScreenIcon);
-			
-			if (secondNextScreenIcon !== undefined)
-				addNextScreenIcon(secondNextScreenIcon);
-		}
-	};
 	
 	// there is an ERROR
 	if (item.dimName === "-E") {
@@ -470,11 +444,11 @@ CBSPublisher.prototype.parseItem = function(item, index) {
 		
 		// add a data to the icon column
 		if (this.gridColumns[2] !== undefined && this.gridColumns[2].dataIndex === 'rep_icon') {
-			row.rep_icon = "<img src='http://88.191.129.143/RestFixture/images/" + item.img + ".png' />";
+			row.rep_icon = "<img src='" + this.IMAGES_URL + item.img + ".png' />";
 		}
 		
 		row.long_descr = item.c16;// add a data to the tooltip column
-		buildNextScreenLink(item, row);// add the data for the "NextScreen icon"
+		this.buildNextScreenLink(item, row);// add the data for the "NextScreen icon"
 		this.gridData_level_1.push( row );// add the row to the grid
 		this.lastParentIndex = row.row_id;// last possible parent for the second level rows
 	}
@@ -573,7 +547,7 @@ CBSPublisher.prototype.parseItem = function(item, index) {
 				this.gridsOrFormsLevel_2["gridFields_" + tab_idx].push( {name: "caction"} );
 			}
 			
-			buildNextScreenLink(item, row);// add the data for the "NextScreen icon"
+			this.buildNextScreenLink(item, row);// add the data for the "NextScreen icon"
 				
 			this.gridsOrFormsLevel_2["gridData_" + tab_idx].push({ parentIndex: parentIndex, row: row });
 		}
@@ -595,6 +569,70 @@ CBSPublisher.prototype.parseItem = function(item, index) {
 	}
 	
 	return nextIndex;
+}
+
+CBSPublisher.prototype.buildNextScreenLink = function(item, row) {
+	var cbs_publisher_instance = this;
+	
+	if (item.c19 || item.c20) {
+		var firstNextScreenIcon = item.c19;
+		var secondNextScreenIcon = item.c20;
+		
+		var addNextScreenIcon = function(nextScreenIconDef) {
+			if (nextScreenIconDef == undefined || nextScreenIconDef == null)
+				return;
+			if (row.caction == undefined || row.caction == null)
+				row.caction = "";
+			
+			var wsParamsArray = null;
+			var iconId = null;
+			if (nextScreenIconDef.indexOf('|') !== -1) {//there is a context menu
+				wsParamsArray = cbs_publisher_instance.getNextScreenParamsFromContextMenuDef(nextScreenIconDef).split(';');
+				iconId = cbs_publisher_instance.contextMenuIconId;
+			} else {
+				wsParamsArray = nextScreenIconDef.split(';');
+				iconId = cbs_publisher_instance.nextScreenIconId;
+			}
+			
+			// add WS params that are not in nextScreenIconDef: use '|' to separate the additional params and the ones from WS
+			nextScreenIconDef = cbs_publisher_instance.cbsWsSettings.usr + ";" + cbs_publisher_instance.cbsWsSettings.lng + ";" +
+					cbs_publisher_instance.cbsWsSettings.roles + ";generalParams|" + nextScreenIconDef;
+			
+			// form the final link with parameters
+			row.caction = row.caction + "<img id='" + iconId + "'" +
+				" src='" + cbs_publisher_instance.IMAGES_URL + wsParamsArray[0] + ".png' title='" + wsParamsArray[1] +
+				"' next_screen_def='" + nextScreenIconDef + "'/>";
+		};
+		
+		if (firstNextScreenIcon !== undefined)
+			addNextScreenIcon(firstNextScreenIcon);
+		
+		if (secondNextScreenIcon !== undefined)
+			addNextScreenIcon(secondNextScreenIcon);
+	}
+};
+
+CBSPublisher.prototype.getNextScreenParamsFromContextMenuDef = function(nextScreenIconDef) {
+	var generalParams = null;
+	var nextScreenParams = null;
+	
+	var menuItemsArray = nextScreenIconDef.split('|');
+	for (var i = 0; i < menuItemsArray.length; i++) {
+		var wsParamsArray = menuItemsArray[i].split(';');
+		if (wsParamsArray[ wsParamsArray.length - 1 ] === "generalParams") {// check if it's not general params added after
+			generalParams = menuItemsArray[i];
+		} else {
+			if (wsParamsArray[4] === undefined || wsParamsArray[4] === "report" || (wsParamsArray[4] !== "callWidget" && wsParamsArray[4] !== "confirmBox")) {
+				nextScreenParams = menuItemsArray[i];
+				break;
+			}	
+		}	
+	}
+	
+	if (generalParams !== null)
+		return generalParams + '|' + nextScreenParams;
+	else
+		return nextScreenParams;
 }
 
 CBSPublisher.prototype.setReportName = function(name) {
@@ -931,43 +969,135 @@ CBSPublisher.prototype.optimizeColumnsSize = function(gridColumns) {
 	return gridColumns;
 }
 
-/*
- * Private function, called only internally - by the itemclick() grid/tree listeners.
- */
 CBSPublisher.prototype.gridTreeClickAction = function(event, record) {
-	var cbs_publisher_instance = this;
-	
 	if (event.target.id === this.nextScreenIconId) {
-		var nextScreenIconDef = $(event.target).attr('next_screen_def');
-		
-		var prevPlaceholderInfo = new Object();
-		prevPlaceholderInfo.IDs = new Array();
-		prevPlaceholderInfo.repTitles = new Array();
-		
-		// add previous placeholder_info
-		$.extend(prevPlaceholderInfo.IDs, cbs_publisher_instance.prev_wgt_placeholder_info.IDs);
-		$.extend(prevPlaceholderInfo.repTitles, cbs_publisher_instance.prev_wgt_placeholder_info.repTitles);
-		
-		// add current placeholder_info
-		prevPlaceholderInfo.IDs.push(cbs_publisher_instance.wgt_placeholder_id);
-		prevPlaceholderInfo.repTitles.push(cbs_publisher_instance.reportName);
-		
-		cbsWidgetPublisherNextScreen(nextScreenIconDef, prevPlaceholderInfo, cbs_publisher_instance.dataWidget.getName());
+		var nextScreenData = this.prepareNextScreenData(event);
+		cbsWidgetPublisherNextScreen(nextScreenData.nextScreenIconDef, nextScreenData.prevPlaceholderInfo, this.dataWidget.getName());
+	}
+	else if (event.target.id === this.contextMenuIconId) {
+		var nextScreenData = this.prepareNextScreenData(event);
+		this.showTreeGridContextMenu(nextScreenData.nextScreenIconDef, nextScreenData.prevPlaceholderInfo, event);
 	}
 	else if (event.target.id === this.searchDetailsIconId) {
-		cbs_publisher_instance.renderSecondLevelComps( record.get('row_id') );// second level - tabs
-		
-		//console.log(cbs_publisher_instance.reportPanel);
-		//console.log(cbs_publisher_instance.reportPanel.renderTo);
-		//console.log(cbs_publisher_instance.reportPanel.isHidden());
-		
-		//$("#"+cbs_publisher_instance.reportPanel.renderTo).show();
-		
-		//cbs_publisher_instance.reportPanel.doLayout();
-		//cbs_publisher_instance.reportPanel.show();
-		//cbs_publisher_instance.reportPanel.updateLayout();
+		this.renderSecondLevelComps( record.get('row_id') );// second level - tabs
 	}
 }
+
+CBSPublisher.prototype.prepareNextScreenData = function(event) {
+	var nextScreenIconDef = $(event.target).attr('next_screen_def');
+	
+	var prevPlaceholderInfo = new Object();
+	prevPlaceholderInfo.IDs = new Array();
+	prevPlaceholderInfo.repTitles = new Array();
+	
+	// add previous placeholder_info
+	$.extend(prevPlaceholderInfo.IDs, this.prev_wgt_placeholder_info.IDs);
+	$.extend(prevPlaceholderInfo.repTitles, this.prev_wgt_placeholder_info.repTitles);
+	
+	// add current placeholder_info
+	prevPlaceholderInfo.IDs.push(this.wgt_placeholder_id);
+	prevPlaceholderInfo.repTitles.push(this.reportName);
+	
+	return {nextScreenIconDef: nextScreenIconDef, prevPlaceholderInfo: prevPlaceholderInfo};
+}
+
+CBSPublisher.prototype.showTreeGridContextMenu = function(nextScreenIconDef, prevPlaceholderInfo, event) {
+	var cbs_publisher_instance = this;
+	
+    event.stopEvent();
+    var items = new Array();
+    
+    // report as usual
+    items.push({
+    	text: 'Report',
+    	handler: function() {
+    		var nextScreenParams = cbs_publisher_instance.getNextScreenParamsFromContextMenuDef(nextScreenIconDef);
+    		cbsWidgetPublisherNextScreen(nextScreenParams, prevPlaceholderInfo, cbs_publisher_instance.dataWidget.getName());
+    	}
+    });
+    
+    var buildWidgetCallItem = function(title, widgetToCall) {
+    	return {
+	    	text: title,
+	    	handler: function() {
+	    		console.log("buildWidgetCallItem: " + widgetToCall);
+	    		cbs_publisher_instance.dataWidget.publishEvent(cbs_publisher_instance.GENERATE_WIDGET_EVENT, null, widgetToCall);
+	    	}
+	    }
+    };
+    
+    var buildDataQueryCallItem = function(dqMenuParams) {
+    	return {
+    		text: dqMenuParams.title,
+	    	handler: function() {
+	    		console.log(dqMenuParams);
+	    		
+	    		Ext.Msg.show({
+	    		     title: dqMenuParams.windowTitle,
+	    		     msg: dqMenuParams.confirmMessage,
+	    		     buttonText: {yes: dqMenuParams.confirmButtonTitle, no: 'NO'},
+	    		     icon: Ext.Msg.QUESTION,
+	    		     fn: function(buttonId, text, opt) {
+	    		    	 console.log(buttonId);
+	    		     }
+	    		});
+	    		
+	    		//TODO: prepare the DataQuery parameters
+	    		//TODO: call DataQuery
+	    		//TODO: refresh only TREE/GRID in the callback of the DataQuery
+	    		//TODO: pass a tree/grid ID and a flag if it's a first or second level) OR BETTER: pass a link to the tree/grid
+	    	}
+    	}
+    };
+    
+    // call another widget or data query
+    var menuItemsArray = nextScreenIconDef.split('|');
+	for (var i = 0; i < menuItemsArray.length; i++) {
+		var wsParamsArray = menuItemsArray[i].split(';');
+		if (wsParamsArray[4] === "callWidget") {
+			items.push( buildWidgetCallItem(wsParamsArray[1], wsParamsArray[2]) );
+		} else if (wsParamsArray[4] === "confirmBox") {
+			var dqMenuParams = new Object();
+			dqMenuParams.title = wsParamsArray[1];
+			dqMenuParams.windowTitle = wsParamsArray[2];
+			dqMenuParams.confirmButtonTitle = wsParamsArray[3];
+			dqMenuParams.confirmMessage = wsParamsArray[5];
+			dqMenuParams.widgetToCall = wsParamsArray[6];
+			dqMenuParams.restName = wsParamsArray[7];
+			dqMenuParams.itemId = wsParamsArray[8];
+			dqMenuParams.client = wsParamsArray[9];
+			dqMenuParams.usr = wsParamsArray[10];
+			dqMenuParams.lng = wsParamsArray[11];
+			dqMenuParams.sheetname = wsParamsArray[12];
+			
+			items.push( buildDataQueryCallItem(dqMenuParams) );
+		}
+	}
+    
+    var menu = new Ext.menu.Menu({
+    	items: items
+	}).showAt(event.xy);
+};
+
+CBSPublisher.prototype.___showTreeGridContextMenu = function(menuItems, event) {
+	menuItems = 5;//TODO: temp
+	
+    event.stopEvent();
+    
+    var items = new Array();
+    for (var i = 0; i < menuItems; i++) {
+    	items.push({
+    		text: 'Item N' + i,
+    		handler: function() {
+    			alert('bla bla');
+    		}
+    	});
+    }
+    
+    var menu = new Ext.menu.Menu({
+    	items: items
+	}).showAt(event.xy);
+};
 
 CBSPublisher.prototype.refreshReport = function() {
 	// remove tabs
@@ -1073,39 +1203,6 @@ CBSPublisher.prototype.refreshReport = function() {
  * Create Tab with second level nested grids. Must be invoked by clicking on the row in the first level grid.
  */
 CBSPublisher.prototype.renderSecondLevelComps = function(parentIndex) {
-	/*
-	NEW CONDITIONS:
-		this.cbsWsSettings.sheetname = 'pk_dp_dastat.f_get_client';//5 - GOOD TO SHOW,
-		//but there is a pb: click on all tabs till 'change, click tab with second chart & click back tab with first - everything disappears 
-	-------------------------------------------------------------------------------------------------------------------------------------------------------------------
-	NEXT ACTION: Check if there is an error when commenting out panel.add() & tab.add() (and remove) functions! Try to detect, when it's hidden and refresh the screen?
-	NEXT ACTION 2: do not call buildSecondLevelTabs() 3 times, but call only for the clicked node level (or just 1, if it's a grid, not tree)
-	
-	
-	IDEA N1: give to all components UNIQUE itemIDs. If it does not work, give unique itemIds even to the components which IDs I don't use anywhere.
-	Test: click 20 times on Fieldset.
-	
-	Note: icons & loop also have IDs!
-	
-	 */
-	/*
-	2 conditions:
-	1) 2 reports, second is accessed via "details" icon (this.cbsWsSettings.sheetname = 'PK_DP_QC_CPT.report';)
-	2) using buildSecondLevelComps() function OR this.calcCompsSize() (using second function takes longer time to crash)
-	3) it's probably something with using the "this" or "pub_inst" variables
-	   - try to replace all IDs for hard-coded strings
-	   - or/and avoid using "this" and "pub_inst" somehow
-	   
-	SUPER IDEA: console.log(this) and compare it after disappearing with the previous version. Line by line.
-	            Something with main panel layout may be?
-	            
-	http://www.sencha.com/forum/showthread.php?219472-Custom-component-keeps-mysteriously-disappearing
-	
-	ANOTHER IDEA: look at forums - Fieldset hides everything, not only itself!
-	
-	ANOTHER IDEA: hide not DIV but the panel - and USE SENCHA for hiding!
-	*/
-	
 	// build tabs of the second level
 	for (var i = 0; i < this.POSSIBLE_TREE_LEVELS.length; i++) {
 		if (this.buildSecondLevelTabs(this.POSSIBLE_TREE_LEVELS[i], parentIndex))
@@ -1343,7 +1440,7 @@ CBSPublisher.prototype.buildPieChart = function(chartDef) {
 	    series: [{
 	    	type: 'pie', angleField: 'data', showInLegend: true, 
 	        tips: {
-	            trackMouse: true,  width: 200, height: 28,
+	            trackMouse: true,  width: 200, height: 35,
 	            renderer: function(storeItem) {// calculate and display percentage on hover
 	                var total = 0;
 	                store.each(function(rec) { total += rec.get('data'); });
@@ -1492,7 +1589,7 @@ CBSPublisher.prototype.buildBarChart = function(chartDef) {
 	        tips: {
 	        	trackMouse: true,
 	        	width: 140,
-	        	height: 28,
+	        	height: 35,
 	        	renderer: function(storeItem, item) {
 	        		this.setTitle(storeItem.get('name') + ': ' + Ext.util.Format.number(storeItem.get('data'), '0.000'));
 	        	}
@@ -1500,7 +1597,6 @@ CBSPublisher.prototype.buildBarChart = function(chartDef) {
 	        label: {
 	        	display: 'insideEnd',
 	            field: 'data',
-	            //renderer: Ext.util.Format.numberRenderer('0.000'),
 	            renderer: function(storeItem) {
 	        		return Ext.util.Format.number(storeItem, '0.000');
 	            },
@@ -1584,8 +1680,6 @@ CBSPublisher.prototype.buildBackLinksHTML = function() {
 		'nav ul li {' +
 		    'float: right;' +
 		    'padding: 8px 0;' +
-		    //'text-overflow: ellipsis;' +
-		    //'width: 150px;' +
 		    'text-indent: 37px;' +
 		'}' +
 		'nav ul li:last-child {' +
@@ -1627,6 +1721,9 @@ CBSPublisher.prototype.buildBackLinksHTML = function() {
 		    '-o-transform: rotate(-45deg);' +
 		    '-ms-transform: rotate(-45deg);' +
 		    'transform: rotate(-45deg);' +
+		    'overflow:hidden;' +
+		    'white-space:nowrap;' +
+		    'text-overflow:ellipsis;' +
 		'}' +
 		'nav ul li a:active span {' +
 		    'bottom: -1px;' +
@@ -1646,7 +1743,6 @@ CBSPublisher.prototype.buildBackLinksHTML = function() {
 		
 		if (currentStep === false) {
 			$("body").on("click", "#" + stepId, function(event) {
-				//TODO: must be destroyed! not only hidden!
 				$("#" + cbs_publisher_instance.wgt_placeholder_id).hide("slide", { direction: "right" }, 300, function() {
 					$("#" + placeholderId).show("slide", {}, 300, function() {});
 				});
