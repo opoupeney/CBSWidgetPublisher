@@ -118,7 +118,10 @@ CBSPublisher.prototype.init = function(dataWidget, wgt_placeholder_id, cbsWsSett
 	//this.DATA_QUERY_NAME = "qCbsFreshMoney";
 	this.CONTEXT_VALUE = {object_name: "faceliftingContext", object_value: "selectedClient"};
 	this.IMAGES_URL = "http://88.191.129.143/RestFixture/images/";
-	this.GENERATE_WIDGET_EVENT = "generateEvent";
+	this.GENERATE_WIDGET_EVENT = "generateWidget";
+	this.NO_DATA_MESSAGE = "&nbsp;No data found";
+	this.POSSIBLE_TREE_LEVELS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+	this.GRID_SYSTEM_COLUMNS = ['row_id', 'long_descr', 'caction', 'rep_icon'];
 	
 	// general data
 	this.dataWidget = dataWidget;
@@ -193,8 +196,6 @@ CBSPublisher.prototype.init = function(dataWidget, wgt_placeholder_id, cbsWsSett
 	this.contextMenuIconId = "contextMenuIcon_" + this.wgt_placeholder_id;
 	this.searchDetailsIconId = "searchDetailsIcon_" + this.wgt_placeholder_id;
 	
-	this.POSSIBLE_TREE_LEVELS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
-	
 	return this;
 }
 
@@ -214,16 +215,15 @@ CBSPublisher.prototype.executeFromExternalCall = function() {
 	this.cbsWsSettings.usr = 'MPELPEL';//real data
 	this.cbsWsSettings.lng = user.locale.name;
 	this.cbsWsSettings.roles = 'r';
-	this.cbsWsSettings.client = '021249';
-	//this.cbsWsSettings.client = '741017';
-	//this.cbsWsSettings.client = '723867';
+	//this.cbsWsSettings.client = '021249';
+	this.cbsWsSettings.client = '741017';
 	//this.cbsWsSettings.client = null;
 	
 	//this.cbsWsSettings.sheetname = this.dataWidget.parameters.pkName;
 	
 	// REAL DATA
 	//this.cbsWsSettings.sheetname = 'pk_dp_client.f_get_synthese_client';//0
-	this.cbsWsSettings.sheetname = 'pk_dp_encours.get_encours_cli';//1 - Good to test and to show
+	//this.cbsWsSettings.sheetname = 'pk_dp_encours.get_encours_cli';//1 - Good to test and to show
 	//this.cbsWsSettings.sheetname = 'pk_dp_signalitique.F_get_signcli';//2
 	//this.cbsWsSettings.sheetname = 'pk_dp_freshmoney.f_get_freshcli';//3 - Good to test
 	//this.cbsWsSettings.sheetname = 'pk_dp_statoper.get_opers_cli';//4 - Bar charts
@@ -237,6 +237,7 @@ CBSPublisher.prototype.executeFromExternalCall = function() {
 	//this.cbsWsSettings.sheetname = 'pk_dp_roles.F_get_roles';// ERROR - FUNCTIONAL
 	//this.cbsWsSettings.sheetname = 'pk_dp_groupes.F_get_groupes';//11
 	//this.cbsWsSettings.sheetname = 'pk_dp_freshmoney.f_get_freshrm';//12
+	this.cbsWsSettings.sheetname = 'PK_DP_DEMCHQ_TREE.report';//13 - demande cheque, client must be 741017
 	
 	// OLD FAKE REPORTS
 	//this.cbsWsSettings.sheetname = 'PK_DP_QC_CPT2.report';
@@ -250,10 +251,10 @@ CBSPublisher.prototype.executeFromExternalCall = function() {
 		var json_obj = JSON.parse(data);
 		if (json_obj instanceof Array) {// get the clienId
 			for (var i=0; i<json_obj.length; i++) {
-				if (json_obj[i]["object"]==this.CONTEXT_VALUE.object_name) {
+				if (json_obj[i]["object"]==cbs_publisher_instance.CONTEXT_VALUE.object_name) {
 					var sel_json_obj = json_obj[i];
 					for (var j=0; j<sel_json_obj.properties.length; j++) {
-						if (sel_json_obj.properties[j]["name"]==this.CONTEXT_VALUE.object_value) {
+						if (sel_json_obj.properties[j]["name"]==cbs_publisher_instance.CONTEXT_VALUE.object_value) {
 							cbs_publisher_instance.cbsWsSettings.client = sel_json_obj.properties[j]["value"];
 							break;
 						}
@@ -864,45 +865,52 @@ CBSPublisher.prototype.renderReport = function() {
 	}
 	
 	// 2) create and add a grid or tree item
+	var mainTreeGridItem = null;
 	var optimizedColumns = this.optimizeColumnsSize(this.gridColumns);
 	if (this.isItTree) {
 		// prepare the data for the TreeStore and get them as a JSON object
 		var store_def_as_json = cbsPublisherTree.getTreeAsJson(this.gridData_level_1);
 		
 		// Create a Tree component using the prepared data
-		if (store_def_as_json.children !== undefined) {
-			panel_items.push({
-				xtype: "treepanel",
-				itemId: this.mainTreeId,
-				maxHeight: initialSize.treeGridMaxHeight,
-				useArrows: true,
-				rootVisible: false,
-		    	columns: optimizedColumns,
-			    store: Ext.create("Ext.data.TreeStore", { fields: this.gridFields_level_1, root: store_def_as_json }),
-			    listeners: {
-			    	itemclick: function(view, record, item, index, e) {
-			    		cbs_publisher_instance.gridTreeClickAction(e, record);
-			    	}
+		mainTreeGridItem = {
+			xtype: "treepanel",
+			itemId: this.mainTreeId,
+			maxHeight: initialSize.treeGridMaxHeight,
+			useArrows: true,
+			rootVisible: false,
+	    	columns: optimizedColumns,
+		    store: Ext.create("Ext.data.TreeStore", { fields: this.gridFields_level_1, root: store_def_as_json }),
+		    listeners: {
+		    	itemclick: function(view, record, item, index, e) {
+		    		cbs_publisher_instance.gridTreeClickAction(e, record);
 		    	}
-			});
-		}
+	    	}
+		};
 	}
 	else {
-		if (this.gridData_level_1.length > 0) {
-			panel_items.push({
-				xtype: "grid",
-				itemId: this.mainGridId,
-				maxHeight: initialSize.treeGridMaxHeight,
-		    	columns: optimizedColumns,
-			    store: Ext.create("Ext.data.Store", { fields: this.gridFields_level_1, data: this.gridData_level_1 }),
-		    	listeners: {
-			    	itemclick: function(grid, record, item, index, e) {
-			    		cbs_publisher_instance.gridTreeClickAction(e, record);
-			    	}
+		mainTreeGridItem = {
+			xtype: "grid",
+			itemId: this.mainGridId,
+			maxHeight: initialSize.treeGridMaxHeight,
+	    	columns: optimizedColumns,
+		    store: Ext.create("Ext.data.Store", { fields: this.gridFields_level_1, data: this.gridData_level_1 }),
+	    	listeners: {
+		    	itemclick: function(grid, record, item, index, e) {
+		    		cbs_publisher_instance.gridTreeClickAction(e, record);
 		    	}
-			});
-		}
+	    	}
+		};
 	}
+	
+	if (this.gridData_level_1.length === 0 && mainTreeGridItem !== null) {
+		mainTreeGridItem.viewConfig = {
+	        emptyText: this.NO_DATA_MESSAGE,
+	        deferEmptyText: false
+	    };
+	}
+	
+	if ( this.doesGridContainDataColumns(this.gridColumns) )// not only system columns
+		panel_items.push(mainTreeGridItem);
 	
 	// main panel
 	this.reportPanel = Ext.create('Ext.panel.Panel', {
@@ -925,6 +933,17 @@ CBSPublisher.prototype.renderReport = function() {
 	this.calcCompsSize();// adjust the components size
 	
 	closeCbsWaitMessage();
+}
+
+CBSPublisher.prototype.doesGridContainDataColumns = function(gridColumns) {
+	var dataColumnExists = false;
+	for (var i = 0; i < gridColumns.length; i++) {
+		if (Ext.Array.contains(this.GRID_SYSTEM_COLUMNS, gridColumns[i].dataIndex) === false) {
+			dataColumnExists = true;
+			break;
+		}
+	}
+	return dataColumnExists;
 }
 
 CBSPublisher.prototype.getHtmlForNormalForm = function() {
@@ -1007,7 +1026,7 @@ CBSPublisher.prototype.showTreeGridContextMenu = function(nextScreenIconDef, pre
     event.stopEvent();
     var items = new Array();
     
-    // report as usual
+    // build report (next screen) menu item
     items.push({
     	text: 'Report',
     	handler: function() {
@@ -1016,87 +1035,98 @@ CBSPublisher.prototype.showTreeGridContextMenu = function(nextScreenIconDef, pre
     	}
     });
     
-    var buildWidgetCallItem = function(title, widgetToCall) {
+    // build widget call menu item
+    var buildWidgetCallItem = function(dqMenuParams) {
     	return {
-	    	text: title,
+    		text: dqMenuParams.title,
 	    	handler: function() {
-	    		console.log("buildWidgetCallItem: " + widgetToCall);
-	    		cbs_publisher_instance.dataWidget.publishEvent(cbs_publisher_instance.GENERATE_WIDGET_EVENT, null, widgetToCall);
+	    		var eventParams = new Array();
+	    		eventParams.push('');//TODO: empty to call all widgets except publisher, otherwise must be sheetname
+	    		eventParams.push( dqMenuParams.widgetToCall );
+	    		eventParams.push( dqMenuParams.rowId );
+	    		cbs_publisher_instance.dataWidget.publishEvent(cbs_publisher_instance.GENERATE_WIDGET_EVENT, eventParams);
 	    	}
 	    }
     };
     
+    // build Data Query call menu item
     var buildDataQueryCallItem = function(dqMenuParams) {
     	return {
     		text: dqMenuParams.title,
 	    	handler: function() {
-	    		console.log(dqMenuParams);
-	    		
 	    		Ext.Msg.show({
 	    		     title: dqMenuParams.windowTitle,
 	    		     msg: dqMenuParams.confirmMessage,
 	    		     buttonText: {yes: dqMenuParams.confirmButtonTitle, no: 'NO'},
 	    		     icon: Ext.Msg.QUESTION,
 	    		     fn: function(buttonId, text, opt) {
-	    		    	 console.log(buttonId);
+	    		    	 if (buttonId === 'yes') {
+	    		    		 var dataQuerySettings = new Object();
+	    		    		 dataQuerySettings.usr = cbs_publisher_instance.cbsWsSettings.usr;
+	    		    		 dataQuerySettings.lng = cbs_publisher_instance.cbsWsSettings.lng;
+	    		    		 dataQuerySettings.cmd = dqMenuParams.cmd;
+	    		    		 
+	    		    		 cbs_publisher_instance.executeDataQueryContextMenuItem(dqMenuParams.dataQueryName, dataQuerySettings);
+	    		    	 }
 	    		     }
 	    		});
-	    		
-	    		//TODO: prepare the DataQuery parameters
-	    		//TODO: call DataQuery
-	    		//TODO: refresh only TREE/GRID in the callback of the DataQuery
-	    		//TODO: pass a tree/grid ID and a flag if it's a first or second level) OR BETTER: pass a link to the tree/grid
 	    	}
     	}
     };
     
-    // call another widget or data query
+    // parsing params to build widget call and data query menu items
     var menuItemsArray = nextScreenIconDef.split('|');
 	for (var i = 0; i < menuItemsArray.length; i++) {
 		var wsParamsArray = menuItemsArray[i].split(';');
 		if (wsParamsArray[4] === "callWidget") {
-			items.push( buildWidgetCallItem(wsParamsArray[1], wsParamsArray[2]) );
+			//null;destroy partiel;wDemchqDestroyCirculation;id,AAAgvAAAFAAI3scAAF;callWidget
+			var dqMenuParams = new Object();
+			dqMenuParams.title = wsParamsArray[1];
+			dqMenuParams.widgetToCall = wsParamsArray[2];
+			dqMenuParams.rowId = wsParamsArray[3].split(',')[1];
+			
+			items.push( buildWidgetCallItem(dqMenuParams) );
 		} else if (wsParamsArray[4] === "confirmBox") {
+			//null;destroy checkbook in stock;Destroy checkbook;YES;confirmBox;Are you sure to destroy checkbook?;qDemChqUiCmd;destroy,id,AAAgvAAAFAAI3ZGAAJ,fromNumber,137680,toNumber,137682
 			var dqMenuParams = new Object();
 			dqMenuParams.title = wsParamsArray[1];
 			dqMenuParams.windowTitle = wsParamsArray[2];
 			dqMenuParams.confirmButtonTitle = wsParamsArray[3];
 			dqMenuParams.confirmMessage = wsParamsArray[5];
-			dqMenuParams.widgetToCall = wsParamsArray[6];
-			dqMenuParams.restName = wsParamsArray[7];
-			dqMenuParams.itemId = wsParamsArray[8];
-			dqMenuParams.client = wsParamsArray[9];
-			dqMenuParams.usr = wsParamsArray[10];
-			dqMenuParams.lng = wsParamsArray[11];
-			dqMenuParams.sheetname = wsParamsArray[12];
+			dqMenuParams.dataQueryName = wsParamsArray[6];
+			dqMenuParams.cmd = wsParamsArray[7];
 			
 			items.push( buildDataQueryCallItem(dqMenuParams) );
 		}
 	}
     
     var menu = new Ext.menu.Menu({
+    	plain: true,
     	items: items
 	}).showAt(event.xy);
 };
 
-CBSPublisher.prototype.___showTreeGridContextMenu = function(menuItems, event) {
-	menuItems = 5;//TODO: temp
+CBSPublisher.prototype.executeDataQueryContextMenuItem = function(dataQueryName, dataQuerySettings) {
+	var cbs_publisher_instance = this;
 	
-    event.stopEvent();
-    
-    var items = new Array();
-    for (var i = 0; i < menuItems; i++) {
-    	items.push({
-    		text: 'Item N' + i,
-    		handler: function() {
-    			alert('bla bla');
-    		}
-    	});
-    }
-    
-    var menu = new Ext.menu.Menu({
-    	items: items
-	}).showAt(event.xy);
+	var dq = new DataQuery(dataQueryName);
+	dq.setParameters(dataQuerySettings);
+	
+	dq.execute(null, function(dataSet) {
+		var buffer = dataSet.getData();
+		console.log(buffer);
+		
+		if (buffer) {
+			var answerAck = ( buffer[0] ) ? buffer[0].data[0].answerAck : buffer.data[0].answerAck;
+			if (answerAck === "ok") {
+				cbs_publisher_instance.cbsWsSettings.newScreen = false;
+				//TODO: for the future - add param to know that ONLY tree/grid must be refreshed,
+				//      that means, do NOT call the refreshReport() function in the chain but another one,
+				//      which does nothing except reloading the tree/grid
+				cbsWidgetPublisher(cbs_publisher_instance.dataWidget, cbs_publisher_instance, cbs_publisher_instance.cbsWsSettings);
+			}
+		}
+	});
 };
 
 CBSPublisher.prototype.refreshReport = function() {
@@ -1205,7 +1235,7 @@ CBSPublisher.prototype.refreshReport = function() {
 CBSPublisher.prototype.renderSecondLevelComps = function(parentIndex) {
 	// build tabs of the second level
 	for (var i = 0; i < this.POSSIBLE_TREE_LEVELS.length; i++) {
-		if (this.buildSecondLevelTabs(this.POSSIBLE_TREE_LEVELS[i], parentIndex))
+		if (this.POSSIBLE_TREE_LEVELS[i] !== "0" && this.buildSecondLevelTabs(this.POSSIBLE_TREE_LEVELS[i], parentIndex))
 			break;
 	}
 	
@@ -1238,30 +1268,37 @@ CBSPublisher.prototype.buildSecondLevelTabs = function(treeIndex, parentIndex) {
 		// tabs: grids & forms
 		while (parseContinue) {
 			if (this.gridsOrFormsLevel_2["reportName_" + treeIndex + tabIndex]) {
-				if (this.gridsOrFormsLevel_2["gridData_" + treeIndex + tabIndex]) {// if it was defined, it's a table data
+				if (this.gridsOrFormsLevel_2["gridColumns_" + treeIndex + tabIndex]) {// if it was defined, it's a table data
 					var gridData = new Array();
 					var currTabAllData = this.gridsOrFormsLevel_2["gridData_" + treeIndex + tabIndex];
-					for (var i = 0; i < currTabAllData.length + 1; i++) {
-						if (currTabAllData[i] && (currTabAllData[i].parentIndex == parentIndex))
-							gridData.push( currTabAllData[i].row );
+					if (currTabAllData !== undefined) {
+						for (var i = 0; i < currTabAllData.length + 1; i++) {
+							if (currTabAllData[i] && (currTabAllData[i].parentIndex == parentIndex))
+								gridData.push( currTabAllData[i].row );
+						}
 					}
 					
-					if (gridData.length > 0) {
-						var item = {
-							title: this.gridsOrFormsLevel_2["reportName_" + treeIndex + tabIndex],
-							itemId: tabIdPrefix + '_' + treeIndex + tabIndex,
-							forceFit: true,
-		        			xtype: "grid",
-		        			columns: this.gridsOrFormsLevel_2["gridColumns_" + treeIndex + tabIndex],
-		        			store: Ext.create("Ext.data.Store", { fields: this.gridsOrFormsLevel_2["gridFields_" + treeIndex + tabIndex], data: gridData }),
-		        			listeners: {
-		        		    	itemclick: function(grid, record, item, index, e) {
-		        		    		cbs_publisher_instance.gridTreeClickAction(e, record);
-		        		    	}
-		        	    	}
-			    		};
-						items.push(item);
+					var item = {
+						title: this.gridsOrFormsLevel_2["reportName_" + treeIndex + tabIndex],
+						itemId: tabIdPrefix + '_' + treeIndex + tabIndex,
+						forceFit: true,
+	        			xtype: "grid",
+	        			columns: this.gridsOrFormsLevel_2["gridColumns_" + treeIndex + tabIndex],
+	        			store: Ext.create("Ext.data.Store", { fields: this.gridsOrFormsLevel_2["gridFields_" + treeIndex + tabIndex], data: gridData }),
+	        			listeners: {
+	        		    	itemclick: function(grid, record, item, index, e) {
+	        		    		cbs_publisher_instance.gridTreeClickAction(e, record);
+	        		    	}
+	        	    	}
+		    		};
+					if (gridData.length === 0) {
+						item.viewConfig = {
+							emptyText: this.NO_DATA_MESSAGE,
+					        deferEmptyText: false
+						};
 					}
+					if ( this.doesGridContainDataColumns(this.gridsOrFormsLevel_2["gridColumns_" + treeIndex + tabIndex]) )// not only system columns
+						items.push(item);
 				}
 				else {// it's a form data
 					var html = "<table style='font-size:12px;' width='100%'>";// put data in several rows, 3 columns
@@ -1286,7 +1323,7 @@ CBSPublisher.prototype.buildSecondLevelTabs = function(treeIndex, parentIndex) {
 					html += "</table>";
 					
 					if (! currTabAllData)
-						html = 'There is no information';
+						html = this.NO_DATA_MESSAGE;
 					
 					var item = {
 						title: this.gridsOrFormsLevel_2["reportName_" + treeIndex + tabIndex],
