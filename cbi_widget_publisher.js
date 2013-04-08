@@ -10,7 +10,7 @@ function cbiWidgetPublisher(dataWidget) {
 	showCbiWaitMessage();
 	
 	dataWidget.clearContent();
-	var wgtPlaceholderId = Math.uuid( 10,10 );
+	var wgtPlaceholderId = Math.uuid(10, 10);
 	dataWidget.addContent("<div id=\"" + wgtPlaceholderId + "\" style=\"width:100%;height:auto;\"></div>");
 	
 	var cbiPublisher = new CBIPublisher(dataWidget, wgtPlaceholderId);
@@ -48,6 +48,9 @@ CBIPublisher.prototype.init = function(dataWidget, wgtPlaceholderId) {
 	this.MENU_DATA_QUERY_NAME = "qWidgetPublisherCBI_menu";
 	this.CHART_DATA_QUERY_NAME = "qWidgetPublisherCBI_chart";
 	
+	// input params
+	this.sheetid = null;
+	
 	// general data
 	this.dataWidget = dataWidget;
 	this.wgtPlaceholderId = wgtPlaceholderId;
@@ -63,6 +66,9 @@ CBIPublisher.prototype.init = function(dataWidget, wgtPlaceholderId) {
 	this.totalColumnsCount = null;
 	this.treeLevelsCount = null;
 	this.treeColumnsCount = null;
+	
+	// DRILL-DOWN MENU
+	this.drillDownMenu = new Array();
 	
 	// CHARTS MENU
 	this.chartsMenu = new Array();
@@ -93,10 +99,11 @@ CBIPublisher.prototype.execute = function() {
 	this.renderReport();
 	
 	// build report elements
-	var wsParams = {sheetid: "100002301"};
+	this.sheetid = "100002301";
+	var wsParams = {sheetid: this.sheetid};
 	this.buildReport(this.SHEET_DATA_QUERY_NAME, this.parseTreeItem, this.prepareTreeReport, wsParams);// TREE
 	
-	wsParams = {sheetid: "100002301"};
+	wsParams = {sheetid: this.sheetid};
 	this.buildReport(this.MENU_DATA_QUERY_NAME, this.parseMenuItem, this.prepareMenuReport, wsParams);// CHARTS menu
 }
 
@@ -159,6 +166,12 @@ CBIPublisher.prototype.parseTreeItem = function(item, index, cbi_publisher_insta
 
 			cbi_publisher_instance.treeFields.push({ name: 'c' + i });
 		}
+		
+		// hidden columns to store the data for the drill down menu
+		cbi_publisher_instance.treeColumns.push({ header: 'auditCellRow', dataIndex: 'auditCellRow', hidden: true });
+		cbi_publisher_instance.treeColumns.push({ header: 'auditCellDimLevel', dataIndex: 'auditCellDimLevel', hidden: true });
+		cbi_publisher_instance.treeFields.push({ name: 'auditCellRow' });
+		cbi_publisher_instance.treeFields.push({ name: 'auditCellDimLevel' });
 	}
 	
 	if (item.sessionId !== "9") {
@@ -166,10 +179,14 @@ CBIPublisher.prototype.parseTreeItem = function(item, index, cbi_publisher_insta
 		row.c1 = item["c0" + item.sessionId];// Tree column data
 		row.level = parseInt( item.sessionId );// Tree column level
 		
-		for (var i = 2; i <= cbi_publisher_instance.treeColumns.length; i++) {// other columns data
+		for (var i = 2; i <= (cbi_publisher_instance.treeColumns.length - 2); i++) {// other columns data: NOTE, THAT 2 DRILL DOWN COLUMNS ARE NOT COUNTED!
 			var colData = item["c0" + (cbi_publisher_instance.totalColumnsCount - cbi_publisher_instance.treeLevelsCount + i - 2)];
 			row["c" + i] = ( isNaN(colData) ) ? colData : parseFloat(colData).toLocaleString();// use ExtJS function to take locale into account
 		}
+		
+		// data for the drill down menu
+		row.auditCellRow = item.dsbRepLinId;
+		row.auditCellDimLevel = item.dimLevelCode;
 		
 		cbi_publisher_instance.treeData.push(row);
 	}
@@ -181,6 +198,8 @@ CBIPublisher.prototype.parseMenuItem = function(item, index, cbi_publisher_insta
 	if (item.c05 && item.c07 && item.c08) {
 		if (item.c05 === wsParams.sheetid && item.c08.indexOf("G_") === 0) {
 			cbi_publisher_instance.chartsMenu.push({ 'graphid': item.c07, 'menuTitle': item.c08.substring(2, item.c08.length) });
+		} else if (item.c05 === wsParams.sheetid && item.c08.indexOf("D_") === 0) {
+			cbi_publisher_instance.drillDownMenu.push({ 'title': item.c08.substring(2, item.c08.length), 'auditCellDataId': item.c07 });
 		}
 	}
 
@@ -322,6 +341,13 @@ CBIPublisher.prototype.prepareTreeReport = function(cbi_publisher_instance) {
 			rootVisible: false,
 	    	columns: cbi_publisher_instance.treeColumns,
 		    store: Ext.create("Ext.data.TreeStore", { fields: cbi_publisher_instance.treeFields, root: jsonStoreDef }),
+		    selType: 'cellmodel',
+			listeners: {
+		    	cellclick: function(table, td, cellIndex, record, tr, rowIndex, e, eOpts) {
+		    		var cellValue = record.data['c' + (cellIndex+1)];//TODO: now it depends on the columns naming during parsing, must be independent
+		    		cbi_publisher_instance.treeClickAction(e, record, cellValue, cbi_publisher_instance);
+		    	}
+	    	}
 		});
 	}
 
@@ -416,6 +442,38 @@ CBIPublisher.prototype.renderReportElement = function(panelItems, wsParams) {
 	
 	this.calcCompsSize();// adjust the components size
 	closeCbiWaitMessage();
+}
+
+CBIPublisher.prototype.treeClickAction = function(event, record, cellValue, cbi_publisher_instance) {
+	event.stopEvent();
+	
+	var buildDrillDownMenuItem = function(drillDownMenu) {
+    	return {
+    		text: drillDownMenu.title,
+			handler: function() {
+	    		var wsDrillDownParams = {
+	    			sheetId: cbi_publisher_instance.sheetid,
+	    			auditCellDataId: drillDownMenu.auditCellDataId,
+	    			auditCellRow: record.get('auditCellRow'),
+	    			auditCellDimLevel: record.get('auditCellDimLevel'),
+	    			auditCellCol: 'c03'//cellValue
+	    		};
+	    		
+	    		var publisherDrillDown = new CBIPublisherDrillDown(cbi_publisher_instance, wsDrillDownParams);
+	    		publisherDrillDown.executeDrillDown();		
+	    	}
+	    }
+    };
+    
+	var items = new Array();
+	for (var i = 0; i < cbi_publisher_instance.drillDownMenu.length; i++) {
+		items.push( buildDrillDownMenuItem(cbi_publisher_instance.drillDownMenu[i]) );
+	}
+    
+    var menu = new Ext.menu.Menu({
+    	plain: true,
+    	items: items
+	}).showAt(event.xy);
 }
 
 /*
@@ -563,6 +621,238 @@ CBIPublisherChartBuilder.prototype.buildLineChart = function(chartDef) {
 	};
     
     return chart;
+}
+
+/*
+ * Class to drill down.
+ */
+function CBIPublisherDrillDown(cbi_publisher_instance, wsDrillDownParams) {
+	// CONSTANTS
+	this.DRILL_DOWN_DATA_QUERY_NAME = "qWidgetPublisherCBI_popup";
+
+	// general data
+	this.cbi_publisher_instance = cbi_publisher_instance;
+	this.wsDrillDownParams = wsDrillDownParams;
+	this.wgtPlaceholderId = Math.uuid(10, 10);
+	
+	// GRID
+	this.reportName = '';
+	this.gridColumns = new Array();
+	this.gridFields = new Array();
+	this.gridData = new Array();
+	this.totalColumnsCount = null;
+}
+
+CBIPublisherDrillDown.prototype.type = "CBIPublisherDrillDown";
+
+CBIPublisherDrillDown.prototype.executeDrillDown = function() {
+	var cbi_drill_down_instance = this;
+	
+	var dq = new DataQuery( this.DRILL_DOWN_DATA_QUERY_NAME );
+	dq.setParameters( this.wsDrillDownParams );
+	
+	dq.execute(null, function(dataSet) {
+		var buffer = dataSet.getData();
+		
+		if (buffer !== null && buffer["dsbResult"] !== null) {
+			var items = null;
+			if (buffer[0] !== null && buffer[0] !== undefined)
+				items = buffer[0].dsbResult;
+			else
+				items = buffer.dsbResult;
+			
+			var parseContinue = true;
+			var parseIndex = 0;
+			var loopIndex = 0;
+			var loopLimit = 2000;
+			
+			cbi_drill_down_instance.setItems(items);
+			
+			while (parseContinue) {
+				loopIndex++;
+				if (items[parseIndex]) {
+					parseIndex = cbi_drill_down_instance.parseGridItem(items[parseIndex], parseIndex);
+					if (parseIndex >= items.length || loopIndex > loopLimit) {
+						parseContinue = false;
+					}	
+				}
+				else {// only one element instead of an Array
+					parseIndex = cbi_drill_down_instance.parseGridItem(items, 0);
+					parseContinue = false;
+				}
+			}
+			
+			cbi_drill_down_instance.renderReport();
+		}
+	});
+}
+
+CBIPublisherDrillDown.prototype.setItems = function(items) {
+	this.items = items;
+}
+
+CBIPublisherDrillDown.prototype.parseGridItem = function(item, index) {
+	if (index === 0) {
+		this.reportName = 'Detailed Report';
+		this.totalColumnsCount = parseInt( item.columnsCount ) - 1;
+		
+		for (var i = 1; i <= this.totalColumnsCount; i++) {
+			//TODO: take width from WS. May be, make align dynamic, depending on type (if double - it's on the right)
+			this.gridColumns.push({ header: 'c0' + i, dataIndex: 'c0' + i, flex: 1 });
+			this.gridFields.push({ name: 'c0' + i });
+		}
+	}
+	
+	var row = new Object();
+	for (var i = 1; i <= this.totalColumnsCount; i++) {
+		var colData = item['c0' + i];
+		row["c0" + i] = ( isNaN(colData) ) ? colData : parseFloat(colData).toLocaleString();// use ExtJS function to take locale into account
+	}
+	
+	this.gridData.push(row);
+
+	return ++index;
+}
+
+CBIPublisherDrillDown.prototype.renderReport = function() {
+	console.log(this);
+	var initialSize = this.cbi_publisher_instance.calcCompsInitialSize();// get the components initial size
+	var items = new Array();
+	
+	items.push({
+		border: false,
+		width: initialSize.mainPanelWidth / 2,
+		html: this.buildBreadcrumbHTML()
+	});
+	
+	items.push({
+		xtype: "grid",
+		maxHeight: initialSize.mainPanelHeight,
+		width: initialSize.mainPanelWidth,
+    	columns: this.gridColumns,
+	    store: Ext.create("Ext.data.Store", { fields: this.gridFields, data: this.gridData })
+	});
+	
+	// hide previous report placeholder
+	$("#" + this.cbi_publisher_instance.wgtPlaceholderId).hide("slide", {direction: "left"}, 500, function() {});
+
+	// display the placeholder for the drill down report
+	this.cbi_publisher_instance.dataWidget.addContent("<div id=\"" + this.wgtPlaceholderId + "\" style=\"width:100%;height:auto;\"></div>");
+	
+	$("body").append("<style type=\"text/css\">" +
+		".cbiPublisherWhite .x-panel-body {" +
+			"background-color: white;" +
+		"}" +
+	"</style>");
+	
+	// DRILL DOWN PANEL
+	Ext.create('Ext.panel.Panel', {
+		width: initialSize.mainPanelWidth,
+	    height: initialSize.mainPanelHeight,
+	    border: false,
+    	renderTo: this.wgtPlaceholderId,
+    	layout: "border",
+    	cls:'cbiPublisherWhite',
+		layout: {
+		    type: "vbox",
+	    	align: "stretch",
+	    	defaultMargins: {top: 4, right: 0, bottom: 0, left: 0}
+		},
+	    items: items
+	});
+}
+
+CBIPublisherDrillDown.prototype.buildBreadcrumbHTML = function() {
+	var cbi_drill_down_instance = this;
+	var backLinksHTML = '';
+	var wizardCSS = '<style type="text/css">' +
+		'nav {' +
+	    'background: #eee;' +
+	    'border: 1px solid #bbb;' +
+	    '-webkit-border-radius: 2px;' +
+	    '-moz-border-radius: 2px;' +
+	    'border-radius: 2px;' +
+	    'color: #666;' +
+	    'font: 14px/1 "Myriad Pro", Arial, Helvetica, Tahoma, sans-serif;' +
+	    'height: 30px;' +
+	    'text-shadow: 0 1px 1px #fff;' +
+	    'overflow: hidden;' +
+	    'margin: 0px;' +
+		'}' +
+		'nav ul {' +
+		    'float: left;' +
+		'}' +
+		'nav ul li {' +
+		    'float: right;' +
+		    'padding: 8px 0;' +
+		    'text-indent: 37px;' +
+		'}' +
+		'nav ul li:last-child {' +
+		    'margin-left: -15px;' +
+		'}' +
+		'nav ul li a {' +
+		    'background: #ddd;' +
+		    'background-image: -webkit-linear-gradient(left top, #eee 38%, #ddd 61%);' +
+		    'background-image: -moz-linear-gradient(left top, #eee 38%, #ddd 61%);' +
+		    'background-image: -o-linear-gradient(left top, #eee 38%, #ddd 61%);' +
+		    'background-image: -ms-linear-gradient(left top, #eee 38%, #ddd 61%);' +
+		    'background-image: linear-gradient(left top, #eee 38%, #ddd 61%);' +
+		    'border: 1px solid #ccc;' +
+		    'color: #666;' +
+		    'display: block;' +
+		    'line-height: 12px;' +
+		    'margin-top: -60px;' +
+		    'padding: 60px 0;' +
+		    'text-decoration: none;' +
+		    'text-shadow: 0 1px 1px #fff;' +
+		    'width: 132px;' +
+		    '-webkit-transform: rotate(45deg);' +
+		    '-moz-transform: rotate(45deg);' +
+		    '-o-transform: rotate(45deg);' +
+		    '-ms-transform: rotate(45deg);' +
+		    'transform: rotate(45deg);' +
+		'}' +
+		'nav ul li a:hover {' +
+		    'background: #ddd;' +
+		    'background-image: none;' +
+		'}' +
+		'nav ul li a:active, nav ul li a:focus {' +
+		    'outline: 0;' +
+		'}' +
+		'nav ul li a span {' +
+		    'display: block;' +
+		    '-webkit-transform: rotate(-45deg);' +
+		    '-moz-transform: rotate(-45deg);' +
+		    '-o-transform: rotate(-45deg);' +
+		    '-ms-transform: rotate(-45deg);' +
+		    'transform: rotate(-45deg);' +
+		    'overflow:hidden;' +
+		    'white-space:nowrap;' +
+		    'text-overflow:ellipsis;' +
+		'}' +
+		'nav ul li a:active span {' +
+		    'bottom: -1px;' +
+		    'left: 1px;' +
+		    'position: relative;' +
+		'}' +
+	'</style>';
+	
+	// add 'previous' steps
+	var prevPlaceholderLinkId = Math.uuid(10, 10);
+	backLinksHTML = '<li><a href="#" id="' + prevPlaceholderLinkId + '"><span>' + this.cbi_publisher_instance.reportName + '</span></a></li>';
+	$("body").on("click", "#" + prevPlaceholderLinkId, function(event) {
+		$("#" + cbi_drill_down_instance.wgtPlaceholderId).hide("slide", {direction: "right"}, 300, function() {
+			$("#" + cbi_drill_down_instance.cbi_publisher_instance.wgtPlaceholderId).show("slide", {}, 300, function() {});
+		});
+	});
+	
+	// add 'current/last' step (not clickable)
+	backLinksHTML = '<li>' + this.reportName + '</li>' + backLinksHTML;
+	
+	if (backLinksHTML !== '')
+		backLinksHTML = '<nav><ul>' + backLinksHTML + '</ul></nav>' + wizardCSS;
+	
+	return backLinksHTML;
 }
 
 var cbiPublisherTree = (function() {
