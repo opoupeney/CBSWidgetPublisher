@@ -119,9 +119,11 @@ CBSPublisher.prototype.init = function(dataWidget, wgt_placeholder_id, cbsWsSett
 	this.CONTEXT_VALUE = {object_name: "faceliftingContext", object_value: "selectedClient"};
 	this.IMAGES_URL = "http://88.191.129.143/RestFixture/images/";
 	this.GENERATE_WIDGET_EVENT = "generateWidget";
-	this.NO_DATA_MESSAGE = "&nbsp;No data found";
 	this.POSSIBLE_TREE_LEVELS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 	this.GRID_SYSTEM_COLUMNS = ['row_id', 'long_descr', 'caction', 'rep_icon'];
+	
+	this.NO_DATA_MESSAGE = dictionary.terms.CBS.no_data_found;
+	this.NO_DATA_MESSAGE = (this.NO_DATA_MESSAGE === undefined) ? "&nbsp;No data found" : "&nbsp;" + this.NO_DATA_MESSAGE;
 	
 	// general data
 	this.dataWidget = dataWidget;
@@ -1044,7 +1046,11 @@ CBSPublisher.prototype.showTreeGridContextMenu = function(nextScreenIconDef, pre
 	    		eventParams.push('');//TODO: empty to call all widgets except publisher, otherwise must be sheetname
 	    		eventParams.push( dqMenuParams.widgetToCall );
 	    		eventParams.push( dqMenuParams.rowId );
-	    		cbs_publisher_instance.dataWidget.publishEvent(cbs_publisher_instance.GENERATE_WIDGET_EVENT, eventParams);
+	    		//cbs_publisher_instance.dataWidget.publishEvent(cbs_publisher_instance.GENERATE_WIDGET_EVENT, eventParams);
+	    		
+	    		dfSetContextValue( "demchq", "rowId", dqMenuParams.rowId, function() {
+	    			cbs_publisher_instance.dataWidget.publishEvent(cbs_publisher_instance.GENERATE_WIDGET_EVENT, eventParams);
+	    		});
 	    	}
 	    }
     };

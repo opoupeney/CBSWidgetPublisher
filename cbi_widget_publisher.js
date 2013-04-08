@@ -96,7 +96,7 @@ CBIPublisher.prototype.execute = function() {
 	var wsParams = {sheetid: "100002301"};
 	this.buildReport(this.SHEET_DATA_QUERY_NAME, this.parseTreeItem, this.prepareTreeReport, wsParams);// TREE
 	
-	wsParams = {Categoryid: "100000083", reportid: "100000044", sheetid: "100002301"};
+	wsParams = {sheetid: "100002301"};
 	this.buildReport(this.MENU_DATA_QUERY_NAME, this.parseMenuItem, this.prepareMenuReport, wsParams);// CHARTS menu
 }
 
@@ -206,7 +206,7 @@ CBIPublisher.prototype.getChartType = function(graphType) {
 	
 	if (graphType === "BAR_VERT_STACK")
 		chartType.BAR_VERT_STACK = true;
-	else if (graphType === "BAR_VERT_STACK")
+	else if (graphType === "LINE_VERT_ABS")
 		chartType.LINE_VERT_ABS = true;
 	
 	return chartType;
