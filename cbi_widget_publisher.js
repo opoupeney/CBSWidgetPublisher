@@ -150,7 +150,7 @@ CBIPublisher.prototype.buildReport = function(dataQueryName, parseCallback, prep
 
 CBIPublisher.prototype.parseTreeItem = function(item, index, cbi_publisher_instance, wsParams) {
 	if (index === 0) {
-		cbi_publisher_instance.setReportName('Matrix Report');
+		cbi_publisher_instance.setReportName( item.title );
 		cbi_publisher_instance.totalColumnsCount = parseInt( item.columnsCount );
 		cbi_publisher_instance.treeLevelsCount = parseInt( item.countcolumnshierarchical );
 		cbi_publisher_instance.treeColumnsCount = cbi_publisher_instance.totalColumnsCount - cbi_publisher_instance.treeLevelsCount + 1;
@@ -312,18 +312,6 @@ CBIPublisher.prototype.calcCompsInitialSize = function() {
     return initialSize;
 }
 
-CBIPublisher.prototype.calcCompsSize = function() {
-	var mainTree = this.reportPanel.getComponent(this.mainTreeId);
-	if (mainTree) {
-		mainTree.setHeight(this.maxWidgetHeight * 9 / 10);
-	}
-	
-	var tabPanel = this.reportPanel.getComponent(this.tabPanelId);
-	if (tabPanel) {
-		tabPanel.setHeight(this.maxWidgetHeight * 9 / 10);
-	}
-}
-
 CBIPublisher.prototype.prepareTreeReport = function(cbi_publisher_instance) {
 	var panelItems = new Array();
 	var initialSize = cbi_publisher_instance.calcCompsInitialSize();// get the components initial size
@@ -345,7 +333,8 @@ CBIPublisher.prototype.prepareTreeReport = function(cbi_publisher_instance) {
 			listeners: {
 		    	cellclick: function(table, td, cellIndex, record, tr, rowIndex, e, eOpts) {
 		    		var cellValue = record.data['c' + (cellIndex+1)];//TODO: now it depends on the columns naming during parsing, must be independent
-		    		cbi_publisher_instance.treeClickAction(e, record, cellValue, cbi_publisher_instance);
+		    		if (cellIndex !== 0)
+		    			cbi_publisher_instance.treeClickAction(e, record, cellValue, cbi_publisher_instance);
 		    	}
 	    	}
 		});
@@ -440,7 +429,6 @@ CBIPublisher.prototype.renderReportElement = function(panelItems, wsParams) {
 		this.reportPanel.add(panelItems);
 	}
 	
-	this.calcCompsSize();// adjust the components size
 	closeCbiWaitMessage();
 }
 
@@ -459,6 +447,7 @@ CBIPublisher.prototype.treeClickAction = function(event, record, cellValue, cbi_
 	    			auditCellCol: 'c03'//cellValue
 	    		};
 	    		
+	    		showCbiWaitMessage();
 	    		var publisherDrillDown = new CBIPublisherDrillDown(cbi_publisher_instance, wsDrillDownParams);
 	    		publisherDrillDown.executeDrillDown();		
 	    	}
@@ -683,6 +672,7 @@ CBIPublisherDrillDown.prototype.executeDrillDown = function() {
 			}
 			
 			cbi_drill_down_instance.renderReport();
+			closeCbiWaitMessage();
 		}
 	});
 }
@@ -693,12 +683,15 @@ CBIPublisherDrillDown.prototype.setItems = function(items) {
 
 CBIPublisherDrillDown.prototype.parseGridItem = function(item, index) {
 	if (index === 0) {
-		this.reportName = 'Detailed Report';
-		this.totalColumnsCount = parseInt( item.columnsCount ) - 1;
+		this.reportName = item.title;
+		this.totalColumnsCount = parseInt( item.columnsCount );
 		
+		var colLabels = item.labelsText.split(',');
+		var dataTypes = item.dataTypesText.split(',');
 		for (var i = 1; i <= this.totalColumnsCount; i++) {
-			//TODO: take width from WS. May be, make align dynamic, depending on type (if double - it's on the right)
-			this.gridColumns.push({ header: 'c0' + i, dataIndex: 'c0' + i, flex: 1 });
+			var textAlign = (dataTypes[i-1] === "double") ? "right" : "left";
+			
+			this.gridColumns.push({ header: colLabels[i-1], dataIndex: 'c0' + i, flex: 1, align: textAlign });
 			this.gridFields.push({ name: 'c0' + i });
 		}
 	}
@@ -727,7 +720,7 @@ CBIPublisherDrillDown.prototype.renderReport = function() {
 	
 	items.push({
 		xtype: "grid",
-		maxHeight: initialSize.mainPanelHeight,
+		maxHeight: initialSize.mainPanelHeight - 50,
 		width: initialSize.mainPanelWidth,
     	columns: this.gridColumns,
 	    store: Ext.create("Ext.data.Store", { fields: this.gridFields, data: this.gridData })
