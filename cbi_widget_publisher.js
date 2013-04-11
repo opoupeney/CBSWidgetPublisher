@@ -709,6 +709,7 @@ CBIPublisherDrillDown.prototype.parseGridItem = function(item, index) {
 
 CBIPublisherDrillDown.prototype.renderReport = function() {
 	console.log(this);
+	var cbi_drill_down_instance = this;
 	var initialSize = this.cbi_publisher_instance.calcCompsInitialSize();// get the components initial size
 	var items = new Array();
 	
@@ -727,31 +728,31 @@ CBIPublisherDrillDown.prototype.renderReport = function() {
 	});
 	
 	// hide previous report placeholder
-	$("#" + this.cbi_publisher_instance.wgtPlaceholderId).hide("slide", {direction: "left"}, 500, function() {});
-
-	// display the placeholder for the drill down report
-	this.cbi_publisher_instance.dataWidget.addContent("<div id=\"" + this.wgtPlaceholderId + "\" style=\"width:100%;height:auto;\"></div>");
-	
-	$("body").append("<style type=\"text/css\">" +
-		".cbiPublisherWhite .x-panel-body {" +
-			"background-color: white;" +
-		"}" +
-	"</style>");
-	
-	// DRILL DOWN PANEL
-	Ext.create('Ext.panel.Panel', {
-		width: initialSize.mainPanelWidth,
-	    height: initialSize.mainPanelHeight,
-	    border: false,
-    	renderTo: this.wgtPlaceholderId,
-    	layout: "border",
-    	cls:'cbiPublisherWhite',
-		layout: {
-		    type: "vbox",
-	    	align: "stretch",
-	    	defaultMargins: {top: 4, right: 0, bottom: 0, left: 0}
-		},
-	    items: items
+	$("#" + this.cbi_publisher_instance.wgtPlaceholderId).hide("slide", {direction: "left"}, 500, function() {
+		// display the placeholder for the drill down report
+		cbi_drill_down_instance.cbi_publisher_instance.dataWidget.addContent("<div id=\"" + cbi_drill_down_instance.wgtPlaceholderId + "\" style=\"width:100%;height:auto;\"></div>");
+		
+		$("body").append("<style type=\"text/css\">" +
+			".cbiPublisherWhite .x-panel-body {" +
+				"background-color: white;" +
+			"}" +
+		"</style>");
+		
+		// DRILL DOWN PANEL
+		Ext.create('Ext.panel.Panel', {
+			width: initialSize.mainPanelWidth,
+		    height: initialSize.mainPanelHeight,
+		    border: false,
+	    	renderTo: cbi_drill_down_instance.wgtPlaceholderId,
+	    	layout: "border",
+	    	cls:'cbiPublisherWhite',
+			layout: {
+			    type: "vbox",
+		    	align: "stretch",
+		    	defaultMargins: {top: 4, right: 0, bottom: 0, left: 0}
+			},
+		    items: items
+		});
 	});
 }
 
