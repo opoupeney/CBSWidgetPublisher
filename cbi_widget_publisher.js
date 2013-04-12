@@ -55,7 +55,7 @@ CBIPublisher.prototype.init = function(dataWidget, wgtPlaceholderId) {
 	this.dataWidget = dataWidget;
 	this.wgtPlaceholderId = wgtPlaceholderId;
 	this.items = null;
-	this.maxWidgetHeight = $(window).height() - 170;// minus footer+header
+	this.maxWidgetHeight = $(window).height() - 170 - 70;// minus footer+header & minus Level 3
 	this.maxWidgetWidth = $(window).width() - 120;// minus left menu
 	
 	// TREE
@@ -99,7 +99,8 @@ CBIPublisher.prototype.execute = function() {
 	this.renderReport();
 	
 	// build report elements
-	this.sheetid = "100002301";
+	//this.sheetId = this.dataWidget.parameters.sheetId;// for the cloud integration
+	this.sheetid = "100002301";// for the local testing
 	var wsParams = {sheetid: this.sheetid};
 	this.buildReport(this.SHEET_DATA_QUERY_NAME, this.parseTreeItem, this.prepareTreeReport, wsParams);// TREE
 	
