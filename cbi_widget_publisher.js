@@ -4,24 +4,13 @@
 */
 
 /*
- * Configuration:
- * 		SHEET_DATA_QUERY_NAME - main Tree Data Query name
- * 		MENU_DATA_QUERY_NAME - charts menu Data Query name
- * 		CHART_DATA_QUERY_NAME - chart Data Query name
- * 		DRILL_DOWN_DATA_QUERY_NAME - drill down Data Query name
- * 
- * 		Passing sheet ID parameter:
- * 			this.sheetId = this.dataWidget.parameters.sheetId
- */
-
-/*
- * Widget entry point.
+ * Widget entry point. 
  */
 function cbiWidgetPublisher(dataWidget) {
 	showCbiWaitMessage();
 	
 	dataWidget.clearContent();
-	var wgtPlaceholderId = Math.uuid(10, 10);
+	var wgtPlaceholderId = Math.uuid( 10,10 );
 	dataWidget.addContent("<div id=\"" + wgtPlaceholderId + "\" style=\"width:100%;height:auto;\"></div>");
 	
 	var cbiPublisher = new CBIPublisher(dataWidget, wgtPlaceholderId);
@@ -55,6 +44,7 @@ CBIPublisher.prototype.type="CBIPublisher";
 
 CBIPublisher.prototype.init = function(dataWidget, wgtPlaceholderId) {
 	// CONSTANTS
+//	this.SHEET_DATA_QUERY_NAME = "qWidgetPublisherCBIStatic";
 	this.SHEET_DATA_QUERY_NAME = "qWidgetPublisherCBI";
 	this.MENU_DATA_QUERY_NAME = "qWidgetPublisherCBI_menu";
 	this.CHART_DATA_QUERY_NAME = "qWidgetPublisherCBI_chart";
@@ -109,9 +99,13 @@ CBIPublisher.prototype.execute = function() {
 	// render main report panel
 	this.renderReport();
 	
+	//getting the sheetid from another widget
+//	var sheetId = this.dataWidget.parameters.sheetId;
+//    var wsParams = {sheetid: sheetId};
+
 	// build report elements
 	//this.sheetId = this.dataWidget.parameters.sheetId;// for the cloud integration
-	this.sheetid = "100002301";// for the local testing - default value
+	this.sheetid = "100000246";// for the local testing - default value
 	var wsParams = {sheetid: this.sheetid};
 	this.buildReport(this.SHEET_DATA_QUERY_NAME, this.parseTreeItem, this.prepareTreeReport, wsParams);// TREE
 	
@@ -160,48 +154,159 @@ CBIPublisher.prototype.buildReport = function(dataQueryName, parseCallback, prep
 	});
 }
 
+//Recursive method that will get all the headers and group them accordingly
+CBIPublisher.prototype.groupHeaders = function(cbi_publisher_instance, parent, multipliers, current_multiplier_number, header_lvls, current_lvl_number, counter){
+	var current_lvl = header_lvls[current_lvl_number];
+	var current_multiplier = multipliers[current_multiplier_number];
+	
+	//Inserting the first level of headers
+	if(current_lvl_number === 0){
+		for (var i = 0; i < current_lvl.length; i++){
+			if(current_lvl_number === header_lvls.length-1){
+				if(cbi_publisher_instance.dataRowCount > cbi_publisher_instance.treeLevelsCount)
+					var index = cbi_publisher_instance.dataRowCount - cbi_publisher_instance.treeLevelsCount + 1 + i;
+				else
+					var index = i + 2;
+				var child = {header:current_lvl[i], align:'right', width:150, dataIndex: cbi_publisher_instance.getTreeColumnName(index)};
+				cbi_publisher_instance.treeFields.push({ name: cbi_publisher_instance.getTreeColumnName(index) });
+			}
+			else{
+				var child = {header:current_lvl[i], align:'right', width:150};
+			}
+			
+			parent.push(child);
+			cbi_publisher_instance.groupHeaders(cbi_publisher_instance, child, multipliers, current_multiplier_number+1, header_lvls, current_lvl_number+1, i);
+		}
+	}
+	//Inserting the children of the first level
+	else{
+		for(var j =current_multiplier*counter; j<current_multiplier*counter + current_multiplier; j++){
+			if(current_lvl_number === header_lvls.length-1){
+				if(cbi_publisher_instance.dataRowCount > cbi_publisher_instance.treeLevelsCount)
+					var index = cbi_publisher_instance.dataRowCount - cbi_publisher_instance.treeLevelsCount + 1 + j;
+				else
+					var index = j + 2;
+				var child = {header:current_lvl[j], align:'right', width:150, dataIndex: cbi_publisher_instance.getTreeColumnName(index) };
+				cbi_publisher_instance.treeFields.push({ name: cbi_publisher_instance.getTreeColumnName(index) });
+			}
+			else{
+				var child = {header:current_lvl[j], align:'right', width:150 };
+			}
+			
+			if(parent.columns == null){
+				parent.columns = [];}
+			
+			parent.columns.push(child);
+			cbi_publisher_instance.groupHeaders(cbi_publisher_instance, child, multipliers, current_multiplier_number+1, header_lvls, current_lvl_number+1, j%current_multiplier);
+		}
+	}
+}
+
+CBIPublisher.prototype.getColumnsHierarchy = function(item){
+	if(item.dataLayouts != null){
+		var dataLayout = (item.dataLayouts).match(/row/g);
+		return dataLayout.length;
+	}	
+}
+
 /*
  * Prepares the columns and data for the Tree. Note, that columns must be called
  * EXACTLY like it's called in JSON, * e.g. c02, c03 etc.
  */
 CBIPublisher.prototype.parseTreeItem = function(item, index, cbi_publisher_instance, wsParams) {
+	var all_headers = item.labelsText.split('\n');
+	var header_lvl_number = all_headers.length;
+	var header_lvls = [], multipliers = [];
+	var last_lvl = (all_headers[all_headers.length-1]).split(',');
+	
 	if (index === 0) {
 		cbi_publisher_instance.setReportName( item.title );
 		cbi_publisher_instance.totalColumnsCount = parseInt( item.columnsCount );
 		cbi_publisher_instance.treeLevelsCount = parseInt( item.countcolumnshierarchical );
+		cbi_publisher_instance.dataRowCount = cbi_publisher_instance.getColumnsHierarchy(item);
 		cbi_publisher_instance.treeColumnsCount = cbi_publisher_instance.totalColumnsCount - cbi_publisher_instance.treeLevelsCount + 1;
+		if(cbi_publisher_instance.dataRowCount > cbi_publisher_instance.treeLevelsCount){
+			cbi_publisher_instance.difference = cbi_publisher_instance.dataRowCount - cbi_publisher_instance.treeLevelsCount;
+			cbi_publisher_instance.hasRowGrouping = true;
+		}
+		else
+			cbi_publisher_instance.difference = 1;
 		
-		var colLabels = item.labelsText.split(',');
-		for (var i = 1; i <= cbi_publisher_instance.treeColumnsCount; i++) {
-			var columnName = cbi_publisher_instance.getTreeColumnName(i);
-			
-			if (i === 1) {
-				cbi_publisher_instance.treeColumns.push({ header: 'Description', dataIndex: columnName, flex: 1, xtype: 'treecolumn' });
-			} else {
-				//TODO: take width from WS. May be, make align dynamic, depending on type (if double - it's on the right)
-				cbi_publisher_instance.treeColumns.push({ header: colLabels[cbi_publisher_instance.treeLevelsCount + i - 2], dataIndex: columnName, align: 'right', width: 150 });
-			}
-
-			cbi_publisher_instance.treeFields.push({ name: columnName });
+		//splitting the labels into the different header levels
+		for (var j = 0; j < header_lvl_number; j++){
+			header_lvls[j] = all_headers[j].split(',');
+			header_lvls[j] = header_lvls[j].splice(cbi_publisher_instance.dataRowCount, header_lvls[j].length-1);
 		}
 		
+		//calculating the multipliers between every level of headers (how sub-headers each header has)
+		if(header_lvl_number > 1){
+			for (var k = 0; k < header_lvl_number; k++){
+				
+				if(header_lvls[k+1] != null)
+					multipliers[k] = (header_lvls[k+1].length)/(header_lvls[k].length);
+			}
+		}	
+		
+		//Invoking the method to group headers. Adding a first column for description.
+		cbi_publisher_instance.groupHeaders(cbi_publisher_instance, cbi_publisher_instance.treeColumns, multipliers, -1, header_lvls, 0, 0);
+		for(var m = 0; m < cbi_publisher_instance.difference - 1; m++){
+			cbi_publisher_instance.treeColumns.unshift({header: last_lvl[cbi_publisher_instance.dataRowCount - 1 - m], width: 150, dataIndex: cbi_publisher_instance.getTreeColumnName((cbi_publisher_instance.difference - m))});
+			cbi_publisher_instance.treeFields.unshift({name: cbi_publisher_instance.getTreeColumnName((cbi_publisher_instance.difference - m)) });
+		}
+		cbi_publisher_instance.treeColumns.unshift({ header: '', dataIndex: 'c02', width: 200, xtype: 'treecolumn'});
+		cbi_publisher_instance.treeFields.unshift({name: 'c02'});
+			
 		// hidden columns to store the data for the drill down menu
 		cbi_publisher_instance.treeColumns.push({ header: 'auditCellRow', dataIndex: 'auditCellRow', hidden: true });
 		cbi_publisher_instance.treeColumns.push({ header: 'auditCellDimLevel', dataIndex: 'auditCellDimLevel', hidden: true });
 		cbi_publisher_instance.treeFields.push({ name: 'auditCellRow' });
 		cbi_publisher_instance.treeFields.push({ name: 'auditCellDimLevel' });
+		
 	}
 	
 	if (item.sessionId !== "9") {
-		var row = new Object();
-		row.c02 = item["c02"];// Tree column data
+		var row = new Object(), num = 0, startingCounter = 0;
+		row.c02 = item["c0" + item.sessionId];// Tree column data
 		row.level = parseInt( item.sessionId );// Tree column level
 		
-		var startDataColumns = cbi_publisher_instance.totalColumnsCount - cbi_publisher_instance.treeLevelsCount - 1;
-		for (var i = startDataColumns; i <= (cbi_publisher_instance.treeColumns.length - 2); i++) {// other columns data: NOTE, THAT 2 DRILL DOWN COLUMNS ARE NOT COUNTED!
-			var columnName = cbi_publisher_instance.getTreeColumnName(i);
-			var colData = item[columnName];
-			row[columnName] = ( isNaN(colData) ) ? colData : parseFloat(colData).toLocaleString();// use ExtJS function to take locale into account
+		//setting up some variables for the loop
+		if(cbi_publisher_instance.hasRowGrouping == true){
+			num = cbi_publisher_instance.difference + cbi_publisher_instance.treeLevelsCount;
+			startingCounter = cbi_publisher_instance.dataRowCount - 1 + 1;
+		}
+		else{
+			num = cbi_publisher_instance.treeLevelsCount;
+			startingCounter = 3;
+		}
+		
+		for (var i = startingCounter; i <= last_lvl.length - (cbi_publisher_instance.difference - 1) + 1; i++) {// other columns data
+			
+			num++;
+			var colData;
+			if (num <= 9)
+				colData = item["c0" + num];
+			else
+				colData = item["c" + num];
+			
+			if (i <= 9){
+				if(colData == undefined)
+					row["c0" + i] = "-";
+				else if( isNaN(colData))
+					row["c0" + i] = colData;
+				else{
+					row["c0" + i] = parseFloat(colData).toLocaleString();// use ExtJS function to take locale into account
+				}
+			}
+			else{
+				if(colData == undefined)
+					row["c" + i] = "-";
+				else if( isNaN(colData))
+					row["c" + i] = colData;
+				else{
+					row["c" + i] = parseFloat(colData).toLocaleString();// use ExtJS function to take locale into account
+				}
+			}
+
 		}
 		
 		// data for the drill down menu
@@ -210,7 +315,47 @@ CBIPublisher.prototype.parseTreeItem = function(item, index, cbi_publisher_insta
 		
 		cbi_publisher_instance.treeData.push(row);
 	}
+	
+	if (item.sessionId === "9" && cbi_publisher_instance.hasRowGrouping == true){
+		var row = new Object();
+		var num = cbi_publisher_instance.treeLevelsCount + 1;
+		row.c02 = item["c0" + (cbi_publisher_instance.treeLevelsCount + 1)];
+		row.level = (cbi_publisher_instance.treeLevelsCount + 1);
+		
+		for (var i = 3; i <= last_lvl.length - (cbi_publisher_instance.treeLevelsCount) + 1; i++) {// other columns data
 
+			num++;
+			var colData;
+			if (num <= 9){
+				colData = item["c0" + num];
+			}
+			else{
+				colData = item["c" + num];
+			}
+			
+			if (i <= 9){
+				if(colData == undefined)
+					row["c0" + i] = "-";
+				else if( isNaN(colData))
+					row["c0" + i] = colData;
+				else{
+					row["c0" + i] = parseFloat(colData).toLocaleString();// use ExtJS function to take locale into account
+				}
+			}
+			else{
+				if(colData == undefined)
+					row["c" + i] = "-";
+				else if( isNaN(colData))
+					row["c" + i] = colData;
+				else{
+					row["c" + i] = parseFloat(colData).toLocaleString();// use ExtJS function to take locale into account
+				}
+			}
+		}
+		
+		cbi_publisher_instance.treeData.push(row);
+	}
+	
 	return ++index;
 }
 
@@ -226,7 +371,6 @@ CBIPublisher.prototype.parseMenuItem = function(item, index, cbi_publisher_insta
 			cbi_publisher_instance.drillDownMenu.push({ 'title': item.c08.substring(2, item.c08.length), 'auditCellDataId': item.c07 });
 		}
 	}
-
 	return ++index;
 }
 
@@ -242,15 +386,23 @@ CBIPublisher.prototype.parseChartItem = function(item, index, cbi_publisher_inst
 		return cbi_publisher_instance.parseBarChartItem(item, index, cbi_publisher_instance, wsParams);
 	else if (chartType.LINE_VERT_ABS)
 		return cbi_publisher_instance.parseLineChartItem(item, index, cbi_publisher_instance, wsParams);
+	else if (chartType.PIE)
+		return cbi_publisher_instance.parsePieChartItem(item, index, cbi_publisher_instance, wsParams);
+	else if (chartType.AREA_VERT_PERCENT)
+		return cbi_publisher_instance.parseAreaChartItem(item, index, cbi_publisher_instance, wsParams);
 }
 
 CBIPublisher.prototype.getChartType = function(graphType) {
 	var chartType = new Object();
 	
-	if (graphType === "BAR_VERT_STACK")
+	if (graphType === "BAR_VERT_STACK" || graphType === "BAR_VERT_FLOAT_STACK")
 		chartType.BAR_VERT_STACK = true;
 	else if (graphType === "LINE_VERT_ABS")
 		chartType.LINE_VERT_ABS = true;
+	else if (graphType === "PIE")
+		chartType.PIE = true;
+	else if (graphType === "AREA_VERT_PERCENT")
+		chartType.AREA_VERT_PERCENT = true;
 	
 	return chartType;
 }
@@ -316,10 +468,107 @@ CBIPublisher.prototype.parseLineChartItem = function(item, index, cbi_publisher_
 				cbi_publisher_instance.chart["series" + chartSuffix].push(serie);
 		}
 	}
-	
-	if (item.sessionId !== "1" && item.sessionId !== "9") {
+
+	if (item.sessionId === "9") {
+		var lbl, num;
+		if(cbi_publisher_instance["treeLevelsCount" + chartSuffix] < 10)
+			num = 'c0' + cbi_publisher_instance["treeLevelsCount" + chartSuffix];
+		else
+			num = 'c' + cbi_publisher_instance["treeLevelsCount" + chartSuffix];
+		
+		lbl = item[num];
 		for (var i = 0; i < cbi_publisher_instance.chart["series" + chartSuffix].length; i++) {
-			cbi_publisher_instance.chart["series" + chartSuffix][i][item.c02] = parseFloat( item["c0" + (cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i)] );
+			if ((cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i) < 10){
+				cbi_publisher_instance.chart["series" + chartSuffix][i][lbl] = parseFloat( item["c0" + (cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i)] );
+			}
+			else{ 
+				cbi_publisher_instance.chart["series" + chartSuffix][i][lbl] = parseFloat( item["c" + (cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i)] );
+			}
+		}
+	}
+	
+	return ++index;
+}
+
+CBIPublisher.prototype.parsePieChartItem = function(item, index, cbi_publisher_instance, wsParams) {
+	var chartSuffix = cbi_publisher_instance.getChartSuffix( wsParams.graphid );
+	
+	
+	if (index === 0) {
+		cbi_publisher_instance.chart["series" + chartSuffix] = new Array();
+		cbi_publisher_instance["treeLevelsCount" + chartSuffix] = parseInt( item.countcolumnshierarchical );
+	
+		var colLabels = item.labelsText.split(',');
+		for (var i = cbi_publisher_instance["treeLevelsCount" + chartSuffix]; i < colLabels.length; i++) {
+			var serie = new Object();
+			serie.name = colLabels[i];
+			
+			var serieNotExists = true;// do not add series with the same name
+			for (var j = 0; j < cbi_publisher_instance.chart["series" + chartSuffix].length; j++) {
+				if (cbi_publisher_instance.chart["series" + chartSuffix][j].name === serie.name)
+					serieNotExists = false;
+			}
+			if (serieNotExists)
+				cbi_publisher_instance.chart["series" + chartSuffix].push(serie);
+		}	
+	}
+
+	if (item.sessionId === "9") {
+		var lbl, num;
+		if(cbi_publisher_instance["treeLevelsCount" + chartSuffix] < 10)
+			num = 'c0' + cbi_publisher_instance["treeLevelsCount" + chartSuffix];
+		else
+			num = 'c' + cbi_publisher_instance["treeLevelsCount" + chartSuffix];
+		
+		lbl = item[num];
+		for (var i = 0; i < cbi_publisher_instance.chart["series" + chartSuffix].length; i++) {
+			if ((cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i) < 10){
+				cbi_publisher_instance.chart["series" + chartSuffix][i][lbl] = parseFloat( item["c0" + (cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i)] );
+			}
+			else{ 
+				cbi_publisher_instance.chart["series" + chartSuffix][i][lbl] = parseFloat( item["c" + (cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i)] );
+			}
+		}
+	}
+	
+	return ++index;
+}
+
+CBIPublisher.prototype.parseAreaChartItem = function(item, index, cbi_publisher_instance, wsParams) {
+	var chartSuffix = cbi_publisher_instance.getChartSuffix( wsParams.graphid );
+	
+	if (index === 0) {
+		cbi_publisher_instance.chart["series" + chartSuffix] = new Array();
+		cbi_publisher_instance["treeLevelsCount" + chartSuffix] = parseInt( item.countcolumnshierarchical );
+	
+		var colLabels = item.labelsText.split(',');
+		for (var i = cbi_publisher_instance["treeLevelsCount" + chartSuffix]; i < colLabels.length; i++) {
+			var serie = new Object();
+			serie.name = colLabels[i];
+			
+			var serieNotExists = true;// do not add series with the same name
+			for (var j = 0; j < cbi_publisher_instance.chart["series" + chartSuffix].length; j++) {
+				if (cbi_publisher_instance.chart["series" + chartSuffix][j].name === serie.name)
+					serieNotExists = false;
+			}
+			if (serieNotExists)
+				cbi_publisher_instance.chart["series" + chartSuffix].push(serie);
+		}	
+	}
+	
+	if (item.sessionId === "9") {
+		var lbl, num;
+		if(cbi_publisher_instance["treeLevelsCount" + chartSuffix] < 10)
+			num = 'c0' + cbi_publisher_instance["treeLevelsCount" + chartSuffix];
+		else
+			num = 'c' + cbi_publisher_instance["treeLevelsCount" + chartSuffix];
+		
+		lbl = item[num];
+		for (var i = 0; i < cbi_publisher_instance.chart["series" + chartSuffix].length; i++) {
+			if ((cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i) < 10)
+				cbi_publisher_instance.chart["series" + chartSuffix][i][lbl] = parseFloat( item["c0" + (cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i)] );
+			else 
+				cbi_publisher_instance.chart["series" + chartSuffix][i][lbl] = parseFloat( item["c" + (cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i)] );
 		}
 	}
 
@@ -336,11 +585,24 @@ CBIPublisher.prototype.calcCompsInitialSize = function() {
     return initialSize;
 }
 
+CBIPublisher.prototype.calcCompsSize = function() {
+	var mainTree = this.reportPanel.getComponent(this.mainTreeId);
+	if (mainTree) {
+		mainTree.setHeight(this.maxWidgetHeight * 9 / 10);
+	}
+	
+	var tabPanel = this.reportPanel.getComponent(this.tabPanelId);
+	if (tabPanel) {
+		tabPanel.setHeight(this.maxWidgetHeight * 9 / 10);
+	}
+}
+
 CBIPublisher.prototype.prepareTreeReport = function(cbi_publisher_instance) {
 	var panelItems = new Array();
 	var initialSize = cbi_publisher_instance.calcCompsInitialSize();// get the components initial size
 	
 	var jsonStoreDef = cbiPublisherTree.getTreeAsJson(cbi_publisher_instance.treeData);// prepare the data for the TreeStore and get them as a JSON object
+	
 	if (jsonStoreDef.children !== undefined) {// create a Tree component using the prepared data
 		panelItems.push({
 			xtype: "treepanel",
@@ -363,7 +625,7 @@ CBIPublisher.prototype.prepareTreeReport = function(cbi_publisher_instance) {
 	    	}
 		});
 	}
-
+		
 	return panelItems;
 }
 
@@ -441,7 +703,6 @@ CBIPublisher.prototype.renderReport = function() {
 }
 
 CBIPublisher.prototype.renderReportElement = function(panelItems, wsParams) {
-	//console.log(this);
 	
 	if (panelItems[0] && panelItems[0].xtype === "chart") {
 		var tab = this.reportPanel.getComponent(this.tabPanelId).getComponent(wsParams.graphid);
@@ -453,6 +714,7 @@ CBIPublisher.prototype.renderReportElement = function(panelItems, wsParams) {
 		this.reportPanel.add(panelItems);
 	}
 	
+	this.calcCompsSize();// adjust the components size
 	closeCbiWaitMessage();
 }
 
@@ -506,6 +768,10 @@ CBIPublisherChartBuilder.prototype.buildCharts = function() {
 		return this.buildStackedBarChart(this.cbi_publisher_instance.chart);
 	else if (this.chartType.LINE_VERT_ABS)
 		return this.buildLineChart(this.cbi_publisher_instance.chart);
+	else if (this.chartType.AREA_VERT_PERCENT)
+		return this.buildAreaChart(this.cbi_publisher_instance.chart);
+	else if (this.chartType.PIE)
+		return this.buildPieChart(this.cbi_publisher_instance.chart);
 }
 
 CBIPublisherChartBuilder.prototype.buildStackedBarChart = function(chartDef) {
@@ -615,7 +881,7 @@ CBIPublisherChartBuilder.prototype.buildLineChart = function(chartDef) {
 	});
 	
 	var chart = {
-		xtype: 'chart',
+		xtype:	 'chart',
 		store: store,
 		legend: {
             position: 'right'
@@ -636,6 +902,123 @@ CBIPublisherChartBuilder.prototype.buildLineChart = function(chartDef) {
     return chart;
 }
 
+CBIPublisherChartBuilder.prototype.buildAreaChart = function(chartDef) {
+	var chartSuffix = this.cbi_publisher_instance.getChartSuffix(this.graphid);
+	
+	var fields = new Array();
+	for (var propName in chartDef["series" + chartSuffix][0]) {
+		if (chartDef["series" + chartSuffix][0].hasOwnProperty(propName))
+			fields.push(propName);
+	}
+	
+	var xFields = fields.slice(0, 1);
+	var yFields = fields.slice(1, fields.length);
+	
+	var store = Ext.create('Ext.data.JsonStore', {
+		fields: fields,
+	    data: chartDef["series" + chartSuffix]
+	});
+	
+	var chart = Ext.create('Ext.chart.Chart', {
+        style: 'background:#fff',
+        animate: true,
+        store: store,
+        legend: {
+            position: 'bottom'
+        },
+        axes: [{
+            type: 'Numeric',
+            position: 'left',
+            fields: yFields,
+            grid: {
+                odd: {
+                    opacity: 1,
+                    fill: '#ddd',
+                    stroke: '#bbb',
+                    'stroke-width': 1
+                }
+            },
+            minimum: 0,
+            adjustMinimumByMajorUnit: 0
+        }, {
+            type: 'Category',
+            position: 'bottom',
+            fields: xFields,
+            grid: true,
+            label: {
+                rotate: {
+                    degrees: 315
+                }
+            }
+        }],
+        series: [{
+            type: 'area',
+            highlight: false,
+            axis: 'left',
+            xField: xFields,
+            yField: yFields,
+            style: {
+                opacity: 0.93
+            }
+        }]
+    });
+	
+	return chart;
+}
+
+CBIPublisherChartBuilder.prototype.buildPieChart = function(chartDef) {
+	var chartSuffix = this.cbi_publisher_instance.getChartSuffix(this.graphid);
+	
+	var data = new Array();
+	for (var propName in chartDef["series" + chartSuffix][0]) {
+		if (chartDef["series" + chartSuffix][0].hasOwnProperty(propName) && propName !== 'name'){
+			data.push({'name': propName, 'data': chartDef["series" + chartSuffix][0][propName] });
+		}	
+	}
+	
+	var store = Ext.create('Ext.data.JsonStore', {
+		fields: ['name', 'data'],
+		data: data
+	});	
+
+	var chart = Ext.create('Ext.chart.Chart', {
+	    animate: true,
+	    store: store,
+	    theme: 'Base:gradients',
+	    series: [{
+	        type: 'pie',
+	        angleField: 'data',
+	        showInLegend: true,
+	        tips: {
+	            trackMouse: true,
+	            width: 140,
+	            height: 28,
+	            renderer: function(storeItem, item) {
+	                // calculate and display percentage on hover
+	                var total = 0;
+	                store.each(function(rec) {
+	                    total += rec.get('data');
+	                });
+	                this.setTitle(storeItem.get('name') + ': ' + Math.round(storeItem.get('data') / total * 100) + '%');
+	            }
+	        },
+	        highlight: {
+	            segment: {
+	                margin: 20
+	            }
+	        },
+	        label: {
+	            field: 'name',
+	            display: 'rotate',
+	            contrast: true,
+	            font: '18px Arial'
+	        }
+	    }]
+	});
+	  
+    return chart;
+}
+
 /*
  * Class to drill down.
  */
@@ -648,7 +1031,7 @@ function CBIPublisherDrillDown(cbi_publisher_instance, wsDrillDownParams) {
 	this.wsDrillDownParams = wsDrillDownParams;
 	this.wgtPlaceholderId = Math.uuid(10, 10);
 	
-	// GRID
+		// GRID
 	this.reportName = '';
 	this.gridColumns = new Array();
 	this.gridFields = new Array();
