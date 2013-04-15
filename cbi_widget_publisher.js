@@ -4,6 +4,17 @@
 */
 
 /*
+ * Configuration:
+ *              SHEET_DATA_QUERY_NAME - main Tree Data Query name
+ *              MENU_DATA_QUERY_NAME - charts menu Data Query name
+ *              CHART_DATA_QUERY_NAME - chart Data Query name
+ *              DRILL_DOWN_DATA_QUERY_NAME - drill down Data Query name
+ * 
+ *              Passing sheet ID parameter:
+ *                      this.sheetId = this.dataWidget.parameters.sheetId
+ */
+
+/*
  * Widget entry point. 
  */
 function cbiWidgetPublisher(dataWidget) {
@@ -105,7 +116,7 @@ CBIPublisher.prototype.execute = function() {
 
 	// build report elements
 	//this.sheetId = this.dataWidget.parameters.sheetId;// for the cloud integration
-	this.sheetid = "100000246";// for the local testing - default value
+	this.sheetid = "100002500";// for the local testing - default value
 	var wsParams = {sheetid: this.sheetid};
 	this.buildReport(this.SHEET_DATA_QUERY_NAME, this.parseTreeItem, this.prepareTreeReport, wsParams);// TREE
 	
@@ -265,22 +276,23 @@ CBIPublisher.prototype.parseTreeItem = function(item, index, cbi_publisher_insta
 	}
 	
 	if (item.sessionId !== "9") {
-		var row = new Object(), num = 0, startingCounter = 0;
+		var row = new Object(), num = 0, startingCounter = 0, endingCounter = 0;
 		row.c02 = item["c0" + item.sessionId];// Tree column data
 		row.level = parseInt( item.sessionId );// Tree column level
 		
 		//setting up some variables for the loop
 		if(cbi_publisher_instance.hasRowGrouping == true){
 			num = cbi_publisher_instance.difference + cbi_publisher_instance.treeLevelsCount;
-			startingCounter = cbi_publisher_instance.dataRowCount - 1 + 1;
+			startingCounter = cbi_publisher_instance.dataRowCount;
+			endingCounter = last_lvl.length - (cbi_publisher_instance.treeLevelsCount) + 1;
 		}
 		else{
 			num = cbi_publisher_instance.treeLevelsCount;
 			startingCounter = 3;
+			endingCounter = last_lvl.length - (cbi_publisher_instance.treeLevelsCount) + 2;
 		}
 		
-		for (var i = startingCounter; i <= last_lvl.length - (cbi_publisher_instance.difference - 1) + 1; i++) {// other columns data
-			
+		for (var i = startingCounter; i <= endingCounter; i++) {// other columns data	
 			num++;
 			var colData;
 			if (num <= 9)
@@ -703,7 +715,7 @@ CBIPublisher.prototype.renderReport = function() {
 }
 
 CBIPublisher.prototype.renderReportElement = function(panelItems, wsParams) {
-	
+//	console.log(this);
 	if (panelItems[0] && panelItems[0].xtype === "chart") {
 		var tab = this.reportPanel.getComponent(this.tabPanelId).getComponent(wsParams.graphid);
 		tab.add(panelItems);
