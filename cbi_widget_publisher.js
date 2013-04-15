@@ -4,7 +4,18 @@
 */
 
 /*
- * Widget entry point. 
+ * Configuration:
+ * 		SHEET_DATA_QUERY_NAME - main Tree Data Query name
+ * 		MENU_DATA_QUERY_NAME - charts menu Data Query name
+ * 		CHART_DATA_QUERY_NAME - chart Data Query name
+ * 		DRILL_DOWN_DATA_QUERY_NAME - drill down Data Query name
+ * 
+ * 		Passing sheet ID parameter:
+ * 			this.sheetId = this.dataWidget.parameters.sheetId
+ */
+
+/*
+ * Widget entry point.
  */
 function cbiWidgetPublisher(dataWidget) {
 	showCbiWaitMessage();
@@ -100,7 +111,7 @@ CBIPublisher.prototype.execute = function() {
 	
 	// build report elements
 	//this.sheetId = this.dataWidget.parameters.sheetId;// for the cloud integration
-	this.sheetid = "100002301";// for the local testing
+	this.sheetid = "100002301";// for the local testing - default value
 	var wsParams = {sheetid: this.sheetid};
 	this.buildReport(this.SHEET_DATA_QUERY_NAME, this.parseTreeItem, this.prepareTreeReport, wsParams);// TREE
 	
@@ -149,6 +160,10 @@ CBIPublisher.prototype.buildReport = function(dataQueryName, parseCallback, prep
 	});
 }
 
+/*
+ * Prepares the columns and data for the Tree. Note, that columns must be called
+ * EXACTLY like it's called in JSON, * e.g. c02, c03 etc.
+ */
 CBIPublisher.prototype.parseTreeItem = function(item, index, cbi_publisher_instance, wsParams) {
 	if (index === 0) {
 		cbi_publisher_instance.setReportName( item.title );
@@ -158,14 +173,16 @@ CBIPublisher.prototype.parseTreeItem = function(item, index, cbi_publisher_insta
 		
 		var colLabels = item.labelsText.split(',');
 		for (var i = 1; i <= cbi_publisher_instance.treeColumnsCount; i++) {
+			var columnName = cbi_publisher_instance.getTreeColumnName(i);
+			
 			if (i === 1) {
-				cbi_publisher_instance.treeColumns.push({ header: 'Description', dataIndex: 'c' + i, flex: 1, xtype: 'treecolumn' });
+				cbi_publisher_instance.treeColumns.push({ header: 'Description', dataIndex: columnName, flex: 1, xtype: 'treecolumn' });
 			} else {
 				//TODO: take width from WS. May be, make align dynamic, depending on type (if double - it's on the right)
-				cbi_publisher_instance.treeColumns.push({ header: colLabels[cbi_publisher_instance.treeLevelsCount + i - 2], dataIndex: 'c' + i, align: 'right', width: 150 });
+				cbi_publisher_instance.treeColumns.push({ header: colLabels[cbi_publisher_instance.treeLevelsCount + i - 2], dataIndex: columnName, align: 'right', width: 150 });
 			}
 
-			cbi_publisher_instance.treeFields.push({ name: 'c' + i });
+			cbi_publisher_instance.treeFields.push({ name: columnName });
 		}
 		
 		// hidden columns to store the data for the drill down menu
@@ -177,12 +194,14 @@ CBIPublisher.prototype.parseTreeItem = function(item, index, cbi_publisher_insta
 	
 	if (item.sessionId !== "9") {
 		var row = new Object();
-		row.c1 = item["c0" + item.sessionId];// Tree column data
+		row.c02 = item["c02"];// Tree column data
 		row.level = parseInt( item.sessionId );// Tree column level
 		
-		for (var i = 2; i <= (cbi_publisher_instance.treeColumns.length - 2); i++) {// other columns data: NOTE, THAT 2 DRILL DOWN COLUMNS ARE NOT COUNTED!
-			var colData = item["c0" + (cbi_publisher_instance.totalColumnsCount - cbi_publisher_instance.treeLevelsCount + i - 2)];
-			row["c" + i] = ( isNaN(colData) ) ? colData : parseFloat(colData).toLocaleString();// use ExtJS function to take locale into account
+		var startDataColumns = cbi_publisher_instance.totalColumnsCount - cbi_publisher_instance.treeLevelsCount - 1;
+		for (var i = startDataColumns; i <= (cbi_publisher_instance.treeColumns.length - 2); i++) {// other columns data: NOTE, THAT 2 DRILL DOWN COLUMNS ARE NOT COUNTED!
+			var columnName = cbi_publisher_instance.getTreeColumnName(i);
+			var colData = item[columnName];
+			row[columnName] = ( isNaN(colData) ) ? colData : parseFloat(colData).toLocaleString();// use ExtJS function to take locale into account
 		}
 		
 		// data for the drill down menu
@@ -193,6 +212,10 @@ CBIPublisher.prototype.parseTreeItem = function(item, index, cbi_publisher_insta
 	}
 
 	return ++index;
+}
+
+CBIPublisher.prototype.getTreeColumnName = function(index) {
+	return (index >= 9) ? "c" + (index + 1) : "c0" + (index + 1);
 }
 
 CBIPublisher.prototype.parseMenuItem = function(item, index, cbi_publisher_instance, wsParams) {
@@ -333,9 +356,9 @@ CBIPublisher.prototype.prepareTreeReport = function(cbi_publisher_instance) {
 		    selType: 'cellmodel',
 			listeners: {
 		    	cellclick: function(table, td, cellIndex, record, tr, rowIndex, e, eOpts) {
-		    		var cellValue = record.data['c' + (cellIndex+1)];//TODO: now it depends on the columns naming during parsing, must be independent
+		    		var columnName = cbi_publisher_instance.getTreeColumnName(cellIndex + 1);// first column is always c02, second c03 etc.
 		    		if (cellIndex !== 0)
-		    			cbi_publisher_instance.treeClickAction(e, record, cellValue, cbi_publisher_instance);
+		    			cbi_publisher_instance.treeClickAction(e, record, columnName, cbi_publisher_instance);
 		    	}
 	    	}
 		});
@@ -418,7 +441,7 @@ CBIPublisher.prototype.renderReport = function() {
 }
 
 CBIPublisher.prototype.renderReportElement = function(panelItems, wsParams) {
-	console.log(this);
+	//console.log(this);
 	
 	if (panelItems[0] && panelItems[0].xtype === "chart") {
 		var tab = this.reportPanel.getComponent(this.tabPanelId).getComponent(wsParams.graphid);
@@ -433,7 +456,7 @@ CBIPublisher.prototype.renderReportElement = function(panelItems, wsParams) {
 	closeCbiWaitMessage();
 }
 
-CBIPublisher.prototype.treeClickAction = function(event, record, cellValue, cbi_publisher_instance) {
+CBIPublisher.prototype.treeClickAction = function(event, record, columnName, cbi_publisher_instance) {
 	event.stopEvent();
 	
 	var buildDrillDownMenuItem = function(drillDownMenu) {
@@ -445,7 +468,7 @@ CBIPublisher.prototype.treeClickAction = function(event, record, cellValue, cbi_
 	    			auditCellDataId: drillDownMenu.auditCellDataId,
 	    			auditCellRow: record.get('auditCellRow'),
 	    			auditCellDimLevel: record.get('auditCellDimLevel'),
-	    			auditCellCol: 'c03'//cellValue
+	    			auditCellCol: columnName
 	    		};
 	    		
 	    		showCbiWaitMessage();
@@ -709,7 +732,7 @@ CBIPublisherDrillDown.prototype.parseGridItem = function(item, index) {
 }
 
 CBIPublisherDrillDown.prototype.renderReport = function() {
-	console.log(this);
+	//console.log(this);
 	var cbi_drill_down_instance = this;
 	var initialSize = this.cbi_publisher_instance.calcCompsInitialSize();// get the components initial size
 	var items = new Array();
