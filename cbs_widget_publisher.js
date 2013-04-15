@@ -4,6 +4,18 @@
 */
 
 /*
+ * Configuration:
+ * 		DATA_QUERY_NAME - main Data Query name
+ * 		CONTEXT_VALUE - context object to take client ID
+ * 		IMAGES_URL - images folder URL
+ * 		GENERATE_WIDGET_EVENT - event to generate widget publisher in DataWidgetRenderer
+ * 		NO_DATA_MESSAGE - message 'no data found' taken from the dictionary
+ * 
+ * 		Passing sheet name parameter:
+ * 			this.cbsWsSettings.sheetname = this.dataWidget.parameters.pkName;
+ */
+
+/*
  * Notes:
  * 1) Rows number is never more than 2000. So, it's useless to implement 'paging' mechanism for the performance.
  * 2) Probably, it makes sense to add a 'PagingToolbar' but anyway, all the data are downloading in one request.
@@ -13,6 +25,7 @@
  * Widget entry point. 
  */
 function cbsWidgetPublisher(dataWidget, cbs_publisher_instance, cbsWsSettings) {
+	//console.log(dataWidget.parameters);
 	showCbsWaitMessage();
 	
 	if (cbs_publisher_instance == undefined || cbs_publisher_instance == null) {// called externally
@@ -114,8 +127,8 @@ CBSPublisher.prototype.type="CBSPublisher";
 
 CBSPublisher.prototype.init = function(dataWidget, wgt_placeholder_id, cbsWsSettings) {
 	// constants
-	this.DATA_QUERY_NAME = "qWidgetPublisher2";
-	//this.DATA_QUERY_NAME = "qCbsFreshMoney";
+	//this.DATA_QUERY_NAME = "qWidgetPublisher2";
+	this.DATA_QUERY_NAME = "qCbsFreshMoney";
 	this.CONTEXT_VALUE = {object_name: "faceliftingContext", object_value: "selectedClient"};
 	this.IMAGES_URL = "http://88.191.129.143/RestFixture/images/";
 	this.GENERATE_WIDGET_EVENT = "generateWidget";
@@ -218,10 +231,11 @@ CBSPublisher.prototype.executeFromExternalCall = function() {
 	this.cbsWsSettings.lng = user.locale.name;
 	this.cbsWsSettings.roles = 'r';
 	//this.cbsWsSettings.client = '021249';
-	this.cbsWsSettings.client = '741017';
-	//this.cbsWsSettings.client = null;
+	//this.cbsWsSettings.client = '741017';
+	//this.cbsWsSettings.client = '723867';
+	this.cbsWsSettings.client = null;
 	
-	//this.cbsWsSettings.sheetname = this.dataWidget.parameters.pkName;
+	this.cbsWsSettings.sheetname = this.dataWidget.parameters.pkName;
 	
 	// REAL DATA
 	//this.cbsWsSettings.sheetname = 'pk_dp_client.f_get_synthese_client';//0
@@ -239,7 +253,8 @@ CBSPublisher.prototype.executeFromExternalCall = function() {
 	//this.cbsWsSettings.sheetname = 'pk_dp_roles.F_get_roles';// ERROR - FUNCTIONAL
 	//this.cbsWsSettings.sheetname = 'pk_dp_groupes.F_get_groupes';//11
 	//this.cbsWsSettings.sheetname = 'pk_dp_freshmoney.f_get_freshrm';//12
-	this.cbsWsSettings.sheetname = 'PK_DP_DEMCHQ_TREE.report';//13 - demande cheque, client must be 741017
+	//this.cbsWsSettings.sheetname = 'PK_DP_DEMCHQ_TREE.report';//13 - demande cheque, client must be 741017
+	//this.cbsWsSettings.sheetname = 'pk_dp_bale2.f_get_bale2rm';//14
 	
 	// OLD FAKE REPORTS
 	//this.cbsWsSettings.sheetname = 'PK_DP_QC_CPT2.report';
@@ -279,7 +294,7 @@ CBSPublisher.prototype.buildReport = function() {
 	
 	var dq = new DataQuery(this.DATA_QUERY_NAME);
 	dq.setParameters(this.cbsWsSettings);
-	console.log(this.cbsWsSettings);
+	//console.log(this.cbsWsSettings);
 	
 	dq.execute(null, function(dataSet) {
 		var buffer = dataSet.getData();
@@ -724,7 +739,7 @@ CBSPublisher.prototype.calcCollapsedFormAndChartsSize = function(isChartsVisible
 }
 
 CBSPublisher.prototype.renderReport = function() {
-	console.log(this);
+	//console.log(this);
 	var cbs_publisher_instance = this;
 	var panel_items = new Array();
 	var initialSize = this.calcCompsInitialSize();// get the components initial size
@@ -1120,7 +1135,6 @@ CBSPublisher.prototype.executeDataQueryContextMenuItem = function(dataQueryName,
 	
 	dq.execute(null, function(dataSet) {
 		var buffer = dataSet.getData();
-		console.log(buffer);
 		
 		if (buffer) {
 			var answerAck = ( buffer[0] ) ? buffer[0].data[0].answerAck : buffer.data[0].answerAck;
@@ -1262,7 +1276,6 @@ CBSPublisher.prototype.renderSecondLevelComps = function(parentIndex) {
 }
 
 CBSPublisher.prototype.buildSecondLevelTabs = function(treeIndex, parentIndex) {
-	//console.log(this);
 	var cbs_publisher_instance = this;
 	var tabIndex = 0;
 	var tabIdPrefix = "cbsSecondLevelTabIdPrefix_" + this.wgt_placeholder_id;
