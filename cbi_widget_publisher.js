@@ -110,13 +110,9 @@ CBIPublisher.prototype.execute = function() {
 	// render main report panel
 	this.renderReport();
 	
-	//getting the sheetid from another widget
-//	var sheetId = this.dataWidget.parameters.sheetId;
-//    var wsParams = {sheetid: sheetId};
-
 	// build report elements
 	//this.sheetId = this.dataWidget.parameters.sheetId;// for the cloud integration
-	this.sheetid = "100002500";// for the local testing - default value
+	this.sheetid = "100000140";// for the local testing - default value
 	var wsParams = {sheetid: this.sheetid};
 	this.buildReport(this.SHEET_DATA_QUERY_NAME, this.parseTreeItem, this.prepareTreeReport, wsParams);// TREE
 	
@@ -365,6 +361,10 @@ CBIPublisher.prototype.parseTreeItem = function(item, index, cbi_publisher_insta
 			}
 		}
 		
+		// data for the drill down menu
+		row.auditCellRow = item.dsbRepLinId;
+		row.auditCellDimLevel = item.dimLevelCode;
+		
 		cbi_publisher_instance.treeData.push(row);
 	}
 	
@@ -397,11 +397,11 @@ CBIPublisher.prototype.parseChartItem = function(item, index, cbi_publisher_inst
 	if (chartType.BAR_VERT_STACK)
 		return cbi_publisher_instance.parseBarChartItem(item, index, cbi_publisher_instance, wsParams);
 	else if (chartType.LINE_VERT_ABS)
-		return cbi_publisher_instance.parseLineChartItem(item, index, cbi_publisher_instance, wsParams);
+		return cbi_publisher_instance.parseChartItemTemp(item, index, cbi_publisher_instance, wsParams);
 	else if (chartType.PIE)
-		return cbi_publisher_instance.parsePieChartItem(item, index, cbi_publisher_instance, wsParams);
+		return cbi_publisher_instance.parseChartItemTemp(item, index, cbi_publisher_instance, wsParams);
 	else if (chartType.AREA_VERT_PERCENT)
-		return cbi_publisher_instance.parseAreaChartItem(item, index, cbi_publisher_instance, wsParams);
+		return cbi_publisher_instance.parseChartItemTemp(item, index, cbi_publisher_instance, wsParams);
 }
 
 CBIPublisher.prototype.getChartType = function(graphType) {
@@ -587,6 +587,52 @@ CBIPublisher.prototype.parseAreaChartItem = function(item, index, cbi_publisher_
 	return ++index;
 }
 
+//Temporary method that i'm currently working on
+CBIPublisher.prototype.parseChartItemTemp = function(item, index, cbi_publisher_instance, wsParams) {
+	var chartSuffix = cbi_publisher_instance.getChartSuffix( wsParams.graphid );
+	
+	if(item.columnsCount == item.labelsText.split(',').length){
+		if (index === 0) {
+			cbi_publisher_instance.chart["series" + chartSuffix] = new Array();
+			cbi_publisher_instance["treeLevelsCount" + chartSuffix] = parseInt( item.countcolumnshierarchical );
+		
+			var colLabels = item.labelsText.split(',');
+			for (var i = cbi_publisher_instance["treeLevelsCount" + chartSuffix]; i < colLabels.length; i++) {
+				var serie = new Object();
+				serie.name = colLabels[i];
+				
+				var serieNotExists = true;// do not add series with the same name
+				for (var j = 0; j < cbi_publisher_instance.chart["series" + chartSuffix].length; j++) {
+					if (cbi_publisher_instance.chart["series" + chartSuffix][j].name === serie.name)
+						serieNotExists = false;
+				}
+				if (serieNotExists)
+					cbi_publisher_instance.chart["series" + chartSuffix].push(serie);
+			}	
+		}
+		
+		if (item.sessionId === "9") {
+			var lbl, num;
+			if(cbi_publisher_instance["treeLevelsCount" + chartSuffix] < 10)
+				num = 'c0' + cbi_publisher_instance["treeLevelsCount" + chartSuffix];
+			else
+				num = 'c' + cbi_publisher_instance["treeLevelsCount" + chartSuffix];
+			
+			lbl = item[num];
+			for (var i = 0; i < cbi_publisher_instance.chart["series" + chartSuffix].length; i++) {
+				if ((cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i) < 10)
+					cbi_publisher_instance.chart["series" + chartSuffix][i][lbl] = parseFloat( item["c0" + (cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i)] );
+				else 
+					cbi_publisher_instance.chart["series" + chartSuffix][i][lbl] = parseFloat( item["c" + (cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i)] );
+			}
+		}
+	}
+	else{
+		
+	}
+	return ++index;
+}
+
 CBIPublisher.prototype.calcCompsInitialSize = function() {
 	var initialSize = new Object();
 	initialSize.treeMaxHeight = this.maxWidgetHeight * 9 / 10;
@@ -715,7 +761,7 @@ CBIPublisher.prototype.renderReport = function() {
 }
 
 CBIPublisher.prototype.renderReportElement = function(panelItems, wsParams) {
-//	console.log(this);
+	console.log(this);
 	if (panelItems[0] && panelItems[0].xtype === "chart") {
 		var tab = this.reportPanel.getComponent(this.tabPanelId).getComponent(wsParams.graphid);
 		tab.add(panelItems);
