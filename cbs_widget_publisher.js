@@ -131,7 +131,7 @@ CBSPublisher.prototype.init = function(dataWidget, wgt_placeholder_id, cbsWsSett
 	this.CONTEXT_VALUE = {object_name: "CgbContext", object_value: "clientId"};
 	this.IMAGES_URL = "/CBSCloud/res/cb/images/publisher/";//"http://88.191.129.143/RestFixture/images/";
 	this.GENERATE_WIDGET_EVENT = "CgbGenerateWidget";
-	this.CONTEXT_VALUE_WGT_CALL = {object_name: "demchq", object_value: "rowId"};
+	this.CONTEXT_VALUE_WGT_CALL = {object_name: "CgbCheckBookRequest", object_value: "rowId"};
 	this.SHEET_NAME_PARAMETER = "pkName";
 	
 	this.POSSIBLE_TREE_LEVELS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
