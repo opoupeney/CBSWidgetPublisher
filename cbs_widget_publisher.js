@@ -127,16 +127,22 @@ CBSPublisher.prototype.type="CBSPublisher";
 
 CBSPublisher.prototype.init = function(dataWidget, wgt_placeholder_id, cbsWsSettings) {
 	// constants
-	//this.DATA_QUERY_NAME = "qWidgetPublisher2";
-	this.DATA_QUERY_NAME = "qCbsFreshMoney";
-	this.CONTEXT_VALUE = {object_name: "faceliftingContext", object_value: "selectedClient"};
-	this.IMAGES_URL = "http://88.191.129.143/RestFixture/images/";
-	this.GENERATE_WIDGET_EVENT = "generateWidget";
+	this.DATA_QUERY_NAME = "qWidgetPublisher";//"qWidgetPublisher2";//"qCbsFreshMoney";
+	this.CONTEXT_VALUE = {object_name: "CgbContext", object_value: "clientId"};
+	this.IMAGES_URL = "/CBSCloud/res/cb/images/publisher/";//"http://88.191.129.143/RestFixture/images/";
+	this.GENERATE_WIDGET_EVENT = "CgbGenerateWidget";
+	this.CONTEXT_VALUE_WGT_CALL = {object_name: "demchq", object_value: "rowId"};
+	this.SHEET_NAME_PARAMETER = "pkName";
+	
 	this.POSSIBLE_TREE_LEVELS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 	this.GRID_SYSTEM_COLUMNS = ['row_id', 'long_descr', 'caction', 'rep_icon'];
 	
-	this.NO_DATA_MESSAGE = dictionary.terms.CBS.no_data_found;
-	this.NO_DATA_MESSAGE = (this.NO_DATA_MESSAGE === undefined) ? "&nbsp;No data found" : "&nbsp;" + this.NO_DATA_MESSAGE;
+	this.NO_DATA_MESSAGE = "&nbsp;No data found";
+	try {
+		this.NO_DATA_MESSAGE = dictionary.terms.CBS.no_data_found;
+	} catch(e) {
+		console.error(e);
+	}
 	
 	// general data
 	this.dataWidget = dataWidget;
@@ -230,24 +236,23 @@ CBSPublisher.prototype.executeFromExternalCall = function() {
 	this.cbsWsSettings.usr = 'MPELPEL';//real data
 	this.cbsWsSettings.lng = user.locale.name;
 	this.cbsWsSettings.roles = 'r';
+	this.cbsWsSettings.client = appcontext[this.CONTEXT_VALUE.object_name][this.CONTEXT_VALUE.object_value];// get the clienId from the context
+	this.cbsWsSettings.sheetname = this.dataWidget.parameters[this.SHEET_NAME_PARAMETER];
+	
 	//this.cbsWsSettings.client = '021249';
 	//this.cbsWsSettings.client = '741017';
 	//this.cbsWsSettings.client = '723867';
-	this.cbsWsSettings.client = null;
-	
-	this.cbsWsSettings.sheetname = this.dataWidget.parameters.pkName;
 	
 	// REAL DATA
 	//this.cbsWsSettings.sheetname = 'pk_dp_client.f_get_synthese_client';//0
 	//this.cbsWsSettings.sheetname = 'pk_dp_encours.get_encours_cli';//1 - Good to test and to show
 	//this.cbsWsSettings.sheetname = 'pk_dp_signalitique.F_get_signcli';//2
-	//this.cbsWsSettings.sheetname = 'pk_dp_freshmoney.f_get_freshcli';//3 - Good to test
+	//this.cbsWsSettings.sheetname = 'pk_dp_freshmoney.f_get_freshcli';//3 - Good to test - test col size
 	//this.cbsWsSettings.sheetname = 'pk_dp_statoper.get_opers_cli';//4 - Bar charts
-	//this.cbsWsSettings.sheetname = 'pk_dp_dastat.f_get_client';//5 - GOOD TO SHOW,
-		//but there is a pb: click on all tabs till 'change, click tab with second chart & click back tab with first - everything disappears
+	//this.cbsWsSettings.sheetname = 'pk_dp_dastat.f_get_client';//5 - Good to show
 	//this.cbsWsSettings.sheetname = 'pk_dp_depass.get_depass_cli';//6 - optional
 	//this.cbsWsSettings.sheetname = 'pk_dp_impas.f_get_impascli';//7
-	//this.cbsWsSettings.sheetname = 'pk_dp_bale2.f_get_client';//8
+	//this.cbsWsSettings.sheetname = 'pk_dp_bale2.f_get_client';//8 - test col size
 	//this.cbsWsSettings.sheetname = 'pk_dp_oper.get_clioper';//9
 	//this.cbsWsSettings.sheetname = 'pk_dp_dpoper.get_clioper_new';//10
 	//this.cbsWsSettings.sheetname = 'pk_dp_roles.F_get_roles';// ERROR - FUNCTIONAL
@@ -263,26 +268,8 @@ CBSPublisher.prototype.executeFromExternalCall = function() {
 	//this.cbsWsSettings.sheetname = 'pk_dp_qc_supplier3.report';
 	//this.cbsWsSettings.sheetname = 'pk_dp_qc_supplier2.report';
 	
-	// get the clienId from the context and build the report
-	dfGetContextValues(function(data) {
-		var json_obj = JSON.parse(data);
-		if (json_obj instanceof Array) {// get the clienId
-			for (var i=0; i<json_obj.length; i++) {
-				if (json_obj[i]["object"]==cbs_publisher_instance.CONTEXT_VALUE.object_name) {
-					var sel_json_obj = json_obj[i];
-					for (var j=0; j<sel_json_obj.properties.length; j++) {
-						if (sel_json_obj.properties[j]["name"]==cbs_publisher_instance.CONTEXT_VALUE.object_value) {
-							cbs_publisher_instance.cbsWsSettings.client = sel_json_obj.properties[j]["value"];
-							break;
-						}
-					}
-				}
-			}
-		}
-		
-		// build the report
-		cbs_publisher_instance.buildReport();
-	});
+	// build the report
+	cbs_publisher_instance.buildReport();
 }
 
 CBSPublisher.prototype.executeFromInternalCall = function() {
@@ -294,7 +281,7 @@ CBSPublisher.prototype.buildReport = function() {
 	
 	var dq = new DataQuery(this.DATA_QUERY_NAME);
 	dq.setParameters(this.cbsWsSettings);
-	//console.log(this.cbsWsSettings);
+	console.log(this.cbsWsSettings);
 	
 	dq.execute(null, function(dataSet) {
 		var buffer = dataSet.getData();
@@ -425,7 +412,6 @@ CBSPublisher.prototype.parseItem = function(item, index) {
 		wsParamsJsonObj.newScreen = false;
 		wsParamsJsonObj.sheetname = item.c03;
 		wsParamsJsonObj.client = item.c04;
-		//var report = item.c05;// for the future - to say that this is a publisher report
 		
 		// parameters 'p1'...'p5'
 		for (var i = 6; i < 11; i++) {
@@ -992,6 +978,7 @@ CBSPublisher.prototype.getHtmlForCollapsedForm = function() {
 }
 
 CBSPublisher.prototype.optimizeColumnsSize = function(gridColumns) {
+	// first, make the largest column flex=1
 	var largestColumn = {index: 0, width: 0};
 	for (var i = 0; i < gridColumns.length; i++) {
 		if (parseInt(gridColumns[i].widthToCalc) > parseInt(largestColumn.width)) {
@@ -999,9 +986,25 @@ CBSPublisher.prototype.optimizeColumnsSize = function(gridColumns) {
 			largestColumn.index = i;
 		}
 	}
-	
-	//gridColumns[ largestColumn.index ].minWidth = gridColumns[ largestColumn.index ].widthToCalc;
 	gridColumns[ largestColumn.index ].flex = 1;
+	
+	// calculate the sizes (in %) of visible columns using "widthToCalc" values
+	var visibleColumnsWidthToCalc = 0;
+	var visibleColumnsWidth = this.maxWidgetWidth;
+	for (var i = 0; i < gridColumns.length; i++) {
+		if (gridColumns[i].hidden !== true) {
+			if (gridColumns[i].widthToCalc)
+				visibleColumnsWidthToCalc = visibleColumnsWidthToCalc + parseInt( gridColumns[i].widthToCalc );
+			else
+				visibleColumnsWidth = visibleColumnsWidth - gridColumns[i].width;
+		}
+	}
+
+	for (var i = 0; i < gridColumns.length; i++) {
+		if (gridColumns[i].hidden !== true && gridColumns[i].widthToCalc)
+			gridColumns[i].width = visibleColumnsWidth * gridColumns[i].widthToCalc / visibleColumnsWidthToCalc;
+	}
+	
 	return gridColumns;
 }
 
@@ -1063,7 +1066,7 @@ CBSPublisher.prototype.showTreeGridContextMenu = function(nextScreenIconDef, pre
 	    		eventParams.push( dqMenuParams.rowId );
 	    		//cbs_publisher_instance.dataWidget.publishEvent(cbs_publisher_instance.GENERATE_WIDGET_EVENT, eventParams);
 	    		
-	    		dfSetContextValue( "demchq", "rowId", dqMenuParams.rowId, function() {
+	    		dfSetContextValue(cbs_publisher_instance.CONTEXT_VALUE_WGT_CALL.object_name, cbs_publisher_instance.CONTEXT_VALUE_WGT_CALL.object_value, dqMenuParams.rowId, function() {
 	    			cbs_publisher_instance.dataWidget.publishEvent(cbs_publisher_instance.GENERATE_WIDGET_EVENT, eventParams);
 	    		});
 	    	}
