@@ -112,7 +112,7 @@ CBIPublisher.prototype.execute = function() {
 	
 	// build report elements
 	//this.sheetId = this.dataWidget.parameters.sheetId;// for the cloud integration
-	this.sheetid = "100000140";// for the local testing - default value
+	this.sheetid = "100004109";// for the local testing - default value
 	var wsParams = {sheetid: this.sheetid};
 	this.buildReport(this.SHEET_DATA_QUERY_NAME, this.parseTreeItem, this.prepareTreeReport, wsParams);// TREE
 	
@@ -142,10 +142,37 @@ CBIPublisher.prototype.buildReport = function(dataQueryName, parseCallback, prep
 			
 			cbi_publisher_instance.setItems(items);
 			
+			//Find out how many x-values this graph has.
+			if(items[0].graphType != null){
+				var x_values = 0, val, prev_val, num, entered = false;
+//				if(parseInt(items[0].countcolumnshierarchical) < 10)
+//					num = 'c0' + items[0].countcolumnshierarchical;
+//				else
+//					num = 'c' + items[0].countcolumnshierarchical;
+				var num = cbi_publisher_instance.getColumnName(items[0].countcolumnshierarchical);
+				for(var i =0; i<items.length; i++){
+					if(items[i].sessionId == 9 && entered == false){
+						val = items[i][num];
+						prev_val = items[i][num];
+						entered = true;
+					}
+					if(items[i].sessionId == 9){
+						prev_val = val;
+						val = items[i][num];
+						if(val == prev_val){
+							x_values++;
+						}
+						else{
+							i = items.length;
+						}
+					}
+				}
+			}
+			
 			while (parseContinue) {
 				loopIndex++;
 				if (items[parseIndex]) {
-					parseIndex = parseCallback(items[parseIndex], parseIndex, cbi_publisher_instance, wsParams);
+					parseIndex = parseCallback(items[parseIndex], parseIndex, cbi_publisher_instance, wsParams, x_values);
 					if (parseIndex >= items.length || loopIndex > loopLimit) {
 						parseContinue = false;
 					}	
@@ -290,30 +317,37 @@ CBIPublisher.prototype.parseTreeItem = function(item, index, cbi_publisher_insta
 		
 		for (var i = startingCounter; i <= endingCounter; i++) {// other columns data	
 			num++;
-			var colData;
-			if (num <= 9)
-				colData = item["c0" + num];
-			else
-				colData = item["c" + num];
+			var colData = item[cbi_publisher_instance.getColumnName(num)];
+//			if (num <= 9)
+//				colData = item["c0" + num];
+//			else
+//				colData = item["c" + num];
 			
-			if (i <= 9){
-				if(colData == undefined)
-					row["c0" + i] = "-";
-				else if( isNaN(colData))
-					row["c0" + i] = colData;
-				else{
-					row["c0" + i] = parseFloat(colData).toLocaleString();// use ExtJS function to take locale into account
-				}
-			}
+			if(colData == undefined)
+				row[cbi_publisher_instance.getColumnName(i)] = "-";
+			else if( isNaN(colData))
+				row[cbi_publisher_instance.getColumnName(i)] = colData;
 			else{
-				if(colData == undefined)
-					row["c" + i] = "-";
-				else if( isNaN(colData))
-					row["c" + i] = colData;
-				else{
-					row["c" + i] = parseFloat(colData).toLocaleString();// use ExtJS function to take locale into account
-				}
+				row[cbi_publisher_instance.getColumnName(i)] = parseFloat(colData).toLocaleString();// use ExtJS function to take locale into account
 			}
+//			if (i <= 9){
+//				if(colData == undefined)
+//					row["c0" + i] = "-";
+//				else if( isNaN(colData))
+//					row["c0" + i] = colData;
+//				else{
+//					row["c0" + i] = parseFloat(colData).toLocaleString();// use ExtJS function to take locale into account
+//				}
+//			}
+//			else{
+//				if(colData == undefined)
+//					row["c" + i] = "-";
+//				else if( isNaN(colData))
+//					row["c" + i] = colData;
+//				else{
+//					row["c" + i] = parseFloat(colData).toLocaleString();// use ExtJS function to take locale into account
+//				}
+//			}
 
 		}
 		
@@ -333,32 +367,39 @@ CBIPublisher.prototype.parseTreeItem = function(item, index, cbi_publisher_insta
 		for (var i = 3; i <= last_lvl.length - (cbi_publisher_instance.treeLevelsCount) + 1; i++) {// other columns data
 
 			num++;
-			var colData;
-			if (num <= 9){
-				colData = item["c0" + num];
-			}
-			else{
-				colData = item["c" + num];
-			}
+			var colData = item[cbi_publisher_instance.getColumnName(num)];
+//			if (num <= 9){
+//				colData = item["c0" + num];
+//			}
+//			else{
+//				colData = item["c" + num];
+//			}
 			
-			if (i <= 9){
-				if(colData == undefined)
-					row["c0" + i] = "-";
-				else if( isNaN(colData))
-					row["c0" + i] = colData;
-				else{
-					row["c0" + i] = parseFloat(colData).toLocaleString();// use ExtJS function to take locale into account
-				}
-			}
+			if(colData == undefined)
+				row[cbi_publisher_instance.getColumnName(i)] = "-";
+			else if( isNaN(colData))
+				row[cbi_publisher_instance.getColumnName(i)] = colData;
 			else{
-				if(colData == undefined)
-					row["c" + i] = "-";
-				else if( isNaN(colData))
-					row["c" + i] = colData;
-				else{
-					row["c" + i] = parseFloat(colData).toLocaleString();// use ExtJS function to take locale into account
-				}
+				row[cbi_publisher_instance.getColumnName(i)] = parseFloat(colData).toLocaleString();// use ExtJS function to take locale into account
 			}
+//			if (i <= 9){
+//				if(colData == undefined)
+//					row["c0" + i] = "-";
+//				else if( isNaN(colData))
+//					row["c0" + i] = colData;
+//				else{
+//					row["c0" + i] = parseFloat(colData).toLocaleString();// use ExtJS function to take locale into account
+//				}
+//			}
+//			else{
+//				if(colData == undefined)
+//					row["c" + i] = "-";
+//				else if( isNaN(colData))
+//					row["c" + i] = colData;
+//				else{
+//					row["c" + i] = parseFloat(colData).toLocaleString();// use ExtJS function to take locale into account
+//				}
+//			}
 		}
 		
 		// data for the drill down menu
@@ -390,18 +431,25 @@ CBIPublisher.prototype.getChartSuffix = function(graphid) {
 	return "_" + graphid;
 }
 
-CBIPublisher.prototype.parseChartItem = function(item, index, cbi_publisher_instance, wsParams) {
+CBIPublisher.prototype.getColumnName = function(num){
+	if(num < 10)
+		return "c0" + num;
+	else
+		return "c" + num;
+}
+
+CBIPublisher.prototype.parseChartItem = function(item, index, cbi_publisher_instance, wsParams, x_values) {
 	wsParams.graphType = item.graphType;
 	var chartType = cbi_publisher_instance.getChartType( item.graphType );
 	
 	if (chartType.BAR_VERT_STACK)
 		return cbi_publisher_instance.parseBarChartItem(item, index, cbi_publisher_instance, wsParams);
 	else if (chartType.LINE_VERT_ABS)
-		return cbi_publisher_instance.parseChartItemTemp(item, index, cbi_publisher_instance, wsParams);
+		return cbi_publisher_instance.parseChartItemTemp(item, index, cbi_publisher_instance, wsParams, x_values);
 	else if (chartType.PIE)
-		return cbi_publisher_instance.parseChartItemTemp(item, index, cbi_publisher_instance, wsParams);
+		return cbi_publisher_instance.parseChartItemTemp(item, index, cbi_publisher_instance, wsParams, x_values);
 	else if (chartType.AREA_VERT_PERCENT)
-		return cbi_publisher_instance.parseChartItemTemp(item, index, cbi_publisher_instance, wsParams);
+		return cbi_publisher_instance.parseChartItemTemp(item, index, cbi_publisher_instance, wsParams, x_values);
 }
 
 CBIPublisher.prototype.getChartType = function(graphType) {
@@ -482,20 +530,22 @@ CBIPublisher.prototype.parseLineChartItem = function(item, index, cbi_publisher_
 	}
 
 	if (item.sessionId === "9") {
-		var lbl, num;
-		if(cbi_publisher_instance["treeLevelsCount" + chartSuffix] < 10)
-			num = 'c0' + cbi_publisher_instance["treeLevelsCount" + chartSuffix];
-		else
-			num = 'c' + cbi_publisher_instance["treeLevelsCount" + chartSuffix];
+		var lbl;
+		var num = cbi_publisher_instance.getColumnName(cbi_publisher_instance["treeLevelsCount" + chartSuffix]);
+//		if(cbi_publisher_instance["treeLevelsCount" + chartSuffix] < 10)
+//			num = 'c0' + cbi_publisher_instance["treeLevelsCount" + chartSuffix];
+//		else
+//			num = 'c' + cbi_publisher_instance["treeLevelsCount" + chartSuffix];
 		
 		lbl = item[num];
 		for (var i = 0; i < cbi_publisher_instance.chart["series" + chartSuffix].length; i++) {
-			if ((cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i) < 10){
-				cbi_publisher_instance.chart["series" + chartSuffix][i][lbl] = parseFloat( item["c0" + (cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i)] );
-			}
-			else{ 
-				cbi_publisher_instance.chart["series" + chartSuffix][i][lbl] = parseFloat( item["c" + (cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i)] );
-			}
+			cbi_publisher_instance.chart["series" + chartSuffix][i][lbl] = parseFloat( item[cbi_publisher_instance.getColumnName((cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i))] );
+//			if ((cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i) < 10){
+//				cbi_publisher_instance.chart["series" + chartSuffix][i][lbl] = parseFloat( item["c0" + (cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i)] );
+//			}
+//			else{ 
+//				cbi_publisher_instance.chart["series" + chartSuffix][i][lbl] = parseFloat( item["c" + (cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i)] );
+//			}
 		}
 	}
 	
@@ -588,10 +638,10 @@ CBIPublisher.prototype.parseAreaChartItem = function(item, index, cbi_publisher_
 }
 
 //Temporary method that i'm currently working on
-CBIPublisher.prototype.parseChartItemTemp = function(item, index, cbi_publisher_instance, wsParams) {
+CBIPublisher.prototype.parseChartItemTemp = function(item, index, cbi_publisher_instance, wsParams, x_values) {
 	var chartSuffix = cbi_publisher_instance.getChartSuffix( wsParams.graphid );
 	
-	if(item.columnsCount == item.labelsText.split(',').length){
+	if(item.labelsText.split(',')[item.labelsText.split(',').length - 1] != "."){
 		if (index === 0) {
 			cbi_publisher_instance.chart["series" + chartSuffix] = new Array();
 			cbi_publisher_instance["treeLevelsCount" + chartSuffix] = parseInt( item.countcolumnshierarchical );
@@ -612,23 +662,94 @@ CBIPublisher.prototype.parseChartItemTemp = function(item, index, cbi_publisher_
 		}
 		
 		if (item.sessionId === "9") {
-			var lbl, num;
-			if(cbi_publisher_instance["treeLevelsCount" + chartSuffix] < 10)
-				num = 'c0' + cbi_publisher_instance["treeLevelsCount" + chartSuffix];
-			else
-				num = 'c' + cbi_publisher_instance["treeLevelsCount" + chartSuffix];
+			var lbl;
+			var num = cbi_publisher_instance.getColumnName(cbi_publisher_instance["treeLevelsCount" + chartSuffix]);
+//			if(cbi_publisher_instance["treeLevelsCount" + chartSuffix] < 10)
+//				num = 'c0' + cbi_publisher_instance["treeLevelsCount" + chartSuffix];
+//			else
+//				num = 'c' + cbi_publisher_instance["treeLevelsCount" + chartSuffix];
+			
+			var num3 = cbi_publisher_instance.getColumnName(cbi_publisher_instance["treeLevelsCount" + chartSuffix]);
+//			if(cbi_publisher_instance["treeLevelsCount" + chartSuffix] < 9){
+//				num3 = 'c0' + (cbi_publisher_instance["treeLevelsCount" + chartSuffix] - 1);
+//			}
+//			else{
+//				num3 = 'c' + (cbi_publisher_instance["treeLevelsCount" + chartSuffix] - 1);
+//			}
 			
 			lbl = item[num];
+			if(item[num3] != null)
+				lbl2 = item[num3] + " - ";
+			else
+				lbl2 = "";
+			
 			for (var i = 0; i < cbi_publisher_instance.chart["series" + chartSuffix].length; i++) {
-				if ((cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i) < 10)
-					cbi_publisher_instance.chart["series" + chartSuffix][i][lbl] = parseFloat( item["c0" + (cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i)] );
-				else 
-					cbi_publisher_instance.chart["series" + chartSuffix][i][lbl] = parseFloat( item["c" + (cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i)] );
+				cbi_publisher_instance.chart["series" + chartSuffix][i][lbl2 + lbl] = parseFloat (item[cbi_publisher_instance.getColumnName((cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i))]);
+//				if ((cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i) < 10)
+//					cbi_publisher_instance.chart["series" + chartSuffix][i][lbl2 + lbl] = parseFloat( item["c0" + (cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i)] );
+//				else 
+//					cbi_publisher_instance.chart["series" + chartSuffix][i][lbl2 + lbl] = parseFloat( item["c" + (cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i)] );
 			}
 		}
 	}
 	else{
+		if (index === 0) {
+			cbi_publisher_instance.chart["series" + chartSuffix] = new Array();
+			cbi_publisher_instance["treeLevelsCount" + chartSuffix] = parseInt( item.countcolumnshierarchical );
+			cbi_publisher_instance["dataDepth" + chartSuffix] = parseInt (item.countcolumnslevel);
+			
+			cbi_publisher_instance["counter" + chartSuffix] = x_values;
+			cbi_publisher_instance["currentCounter" + chartSuffix] = -1;
+			
+			for (var j = 0; j<cbi_publisher_instance["counter" + chartSuffix]; j++)
+				cbi_publisher_instance.chart["series" + chartSuffix].push(new Object());
+		}
 		
+		if(item.sessionId === "9"){
+			var lbl, serie = new Object();
+			var num = cbi_publisher_instance.getColumnName(cbi_publisher_instance["treeLevelsCount" + chartSuffix]);
+//			if(cbi_publisher_instance["treeLevelsCount" + chartSuffix] < 10){
+//				num = 'c0' + cbi_publisher_instance["treeLevelsCount" + chartSuffix];
+//			}
+//			else{
+//				num = 'c' + cbi_publisher_instance["treeLevelsCount" + chartSuffix];
+//			}
+			
+			var num3 = cbi_publisher_instance.getColumnName(cbi_publisher_instance["treeLevelsCount" + chartSuffix]);
+//			if(cbi_publisher_instance["treeLevelsCount" + chartSuffix] < 9){
+//				num3 = 'c0' + (cbi_publisher_instance["treeLevelsCount" + chartSuffix] - 1);
+//			}
+//			else{
+//				num3 = 'c' + (cbi_publisher_instance["treeLevelsCount" + chartSuffix] - 1);
+//			}
+			
+			var num2 = cbi_publisher_instance.getColumnName(cbi_publisher_instance["dataDepth" + chartSuffix]);
+//			if(cbi_publisher_instance["dataDepth" + chartSuffix] < 10)
+//				num2 = 'c0' + cbi_publisher_instance["dataDepth" + chartSuffix];
+//			else
+//				num2 = 'c' + cbi_publisher_instance["dataDepth" + chartSuffix];
+			
+			lbl = item[num];
+			if(item[num3] != null)
+				lbl2 = item[num3] + " - ";
+			else
+				lbl2 = "";
+//			serie.name = item[num2];			
+			cbi_publisher_instance["currentCounter" + chartSuffix]++;
+			
+			cbi_publisher_instance.chart["series" + chartSuffix][cbi_publisher_instance["currentCounter" + chartSuffix]]["name"] = item[num2];
+			
+			cbi_publisher_instance.chart["series" + chartSuffix][cbi_publisher_instance["currentCounter" + chartSuffix]][lbl2 + lbl] = parseFloat( item[cbi_publisher_instance.getColumnName((cbi_publisher_instance["dataDepth" + chartSuffix] + 1))]);
+//			if ((cbi_publisher_instance["dataDepth" + chartSuffix] + 1) < 10){
+//				cbi_publisher_instance.chart["series" + chartSuffix][cbi_publisher_instance["currentCounter" + chartSuffix]][lbl2 + lbl] = parseFloat( item["c0" + (cbi_publisher_instance["dataDepth" + chartSuffix] + 1)] );
+//			}
+//			else{ 
+//				cbi_publisher_instance.chart["series" + chartSuffix][cbi_publisher_instance["currentCounter" + chartSuffix]][lbl2 + lbl] = parseFloat( item["c" + (cbi_publisher_instance["dataDepth" + chartSuffix] + 1)] );
+//			}
+			
+			if(cbi_publisher_instance["currentCounter" + chartSuffix] == cbi_publisher_instance["counter" + chartSuffix] - 1)
+				cbi_publisher_instance["currentCounter" + chartSuffix] = -1;
+		}
 	}
 	return ++index;
 }
