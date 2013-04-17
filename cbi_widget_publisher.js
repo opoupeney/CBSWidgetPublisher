@@ -112,7 +112,8 @@ CBIPublisher.prototype.execute = function() {
 	
 	// build report elements
 	//this.sheetId = this.dataWidget.parameters.sheetId;// for the cloud integration
-	this.sheetid = "100004109";// for the local testing - default value
+	//SheetID's for testing: 100002301, 100002317, 100002322, 100003313, 100003421, 100001732, 100000800
+	this.sheetid = "100001732";// for the local testing - default value
 	var wsParams = {sheetid: this.sheetid};
 	this.buildReport(this.SHEET_DATA_QUERY_NAME, this.parseTreeItem, this.prepareTreeReport, wsParams);// TREE
 	
@@ -144,11 +145,7 @@ CBIPublisher.prototype.buildReport = function(dataQueryName, parseCallback, prep
 			
 			//Find out how many x-values this graph has.
 			if(items[0].graphType != null){
-				var x_values = 0, val, prev_val, num, entered = false;
-//				if(parseInt(items[0].countcolumnshierarchical) < 10)
-//					num = 'c0' + items[0].countcolumnshierarchical;
-//				else
-//					num = 'c' + items[0].countcolumnshierarchical;
+				var x_values = 0, val, prev_val, entered = false;
 				var num = cbi_publisher_instance.getColumnName(items[0].countcolumnshierarchical);
 				for(var i =0; i<items.length; i++){
 					if(items[i].sessionId == 9 && entered == false){
@@ -201,8 +198,8 @@ CBIPublisher.prototype.groupHeaders = function(cbi_publisher_instance, parent, m
 					var index = cbi_publisher_instance.dataRowCount - cbi_publisher_instance.treeLevelsCount + 1 + i;
 				else
 					var index = i + 2;
-				var child = {header:current_lvl[i], align:'right', width:150, dataIndex: cbi_publisher_instance.getTreeColumnName(index)};
-				cbi_publisher_instance.treeFields.push({ name: cbi_publisher_instance.getTreeColumnName(index) });
+				var child = {header:current_lvl[i], align:'right', width:150, dataIndex: cbi_publisher_instance.getColumnName(index + 1)};
+				cbi_publisher_instance.treeFields.push({ name: cbi_publisher_instance.getColumnName(index + 1) });
 			}
 			else{
 				var child = {header:current_lvl[i], align:'right', width:150};
@@ -220,8 +217,8 @@ CBIPublisher.prototype.groupHeaders = function(cbi_publisher_instance, parent, m
 					var index = cbi_publisher_instance.dataRowCount - cbi_publisher_instance.treeLevelsCount + 1 + j;
 				else
 					var index = j + 2;
-				var child = {header:current_lvl[j], align:'right', width:150, dataIndex: cbi_publisher_instance.getTreeColumnName(index) };
-				cbi_publisher_instance.treeFields.push({ name: cbi_publisher_instance.getTreeColumnName(index) });
+				var child = {header:current_lvl[j], align:'right', width:150, dataIndex: cbi_publisher_instance.getColumnName(index + 1) };
+				cbi_publisher_instance.treeFields.push({ name: cbi_publisher_instance.getColumnName(index + 1) });
 			}
 			else{
 				var child = {header:current_lvl[j], align:'right', width:150 };
@@ -284,8 +281,8 @@ CBIPublisher.prototype.parseTreeItem = function(item, index, cbi_publisher_insta
 		//Invoking the method to group headers. Adding a first column for description.
 		cbi_publisher_instance.groupHeaders(cbi_publisher_instance, cbi_publisher_instance.treeColumns, multipliers, -1, header_lvls, 0, 0);
 		for(var m = 0; m < cbi_publisher_instance.difference - 1; m++){
-			cbi_publisher_instance.treeColumns.unshift({header: last_lvl[cbi_publisher_instance.dataRowCount - 1 - m], width: 150, dataIndex: cbi_publisher_instance.getTreeColumnName((cbi_publisher_instance.difference - m))});
-			cbi_publisher_instance.treeFields.unshift({name: cbi_publisher_instance.getTreeColumnName((cbi_publisher_instance.difference - m)) });
+			cbi_publisher_instance.treeColumns.unshift({header: last_lvl[cbi_publisher_instance.dataRowCount - 1 - m], width: 150, dataIndex: cbi_publisher_instance.getColumnName((cbi_publisher_instance.difference - m + 1))});
+			cbi_publisher_instance.treeFields.unshift({name: cbi_publisher_instance.getColumnName((cbi_publisher_instance.difference - m + 1)) });
 		}
 		cbi_publisher_instance.treeColumns.unshift({ header: '', dataIndex: 'c02', width: 200, xtype: 'treecolumn'});
 		cbi_publisher_instance.treeFields.unshift({name: 'c02'});
@@ -299,29 +296,25 @@ CBIPublisher.prototype.parseTreeItem = function(item, index, cbi_publisher_insta
 	}
 	
 	if (item.sessionId !== "9") {
-		var row = new Object(), num = 0, startingCounter = 0, endingCounter = 0;
+		var row = new Object(), dataStartingColumnNumber = 0, startingCounter = 0, endingCounter = 0;
 		row.c02 = item["c0" + item.sessionId];// Tree column data
 		row.level = parseInt( item.sessionId );// Tree column level
 		
 		//setting up some variables for the loop
 		if(cbi_publisher_instance.hasRowGrouping == true){
-			num = cbi_publisher_instance.difference + cbi_publisher_instance.treeLevelsCount;
+			dataStartingColumnNumber = cbi_publisher_instance.difference + cbi_publisher_instance.treeLevelsCount;
 			startingCounter = cbi_publisher_instance.dataRowCount;
 			endingCounter = last_lvl.length - (cbi_publisher_instance.treeLevelsCount) + 1;
 		}
 		else{
-			num = cbi_publisher_instance.treeLevelsCount;
+			dataStartingColumnNumber = cbi_publisher_instance.treeLevelsCount;
 			startingCounter = 3;
 			endingCounter = last_lvl.length - (cbi_publisher_instance.treeLevelsCount) + 2;
 		}
 		
 		for (var i = startingCounter; i <= endingCounter; i++) {// other columns data	
-			num++;
-			var colData = item[cbi_publisher_instance.getColumnName(num)];
-//			if (num <= 9)
-//				colData = item["c0" + num];
-//			else
-//				colData = item["c" + num];
+			dataStartingColumnNumber++;
+			var colData = item[cbi_publisher_instance.getColumnName(dataStartingColumnNumber)];
 			
 			if(colData == undefined)
 				row[cbi_publisher_instance.getColumnName(i)] = "-";
@@ -330,25 +323,6 @@ CBIPublisher.prototype.parseTreeItem = function(item, index, cbi_publisher_insta
 			else{
 				row[cbi_publisher_instance.getColumnName(i)] = parseFloat(colData).toLocaleString();// use ExtJS function to take locale into account
 			}
-//			if (i <= 9){
-//				if(colData == undefined)
-//					row["c0" + i] = "-";
-//				else if( isNaN(colData))
-//					row["c0" + i] = colData;
-//				else{
-//					row["c0" + i] = parseFloat(colData).toLocaleString();// use ExtJS function to take locale into account
-//				}
-//			}
-//			else{
-//				if(colData == undefined)
-//					row["c" + i] = "-";
-//				else if( isNaN(colData))
-//					row["c" + i] = colData;
-//				else{
-//					row["c" + i] = parseFloat(colData).toLocaleString();// use ExtJS function to take locale into account
-//				}
-//			}
-
 		}
 		
 		// data for the drill down menu
@@ -360,20 +334,14 @@ CBIPublisher.prototype.parseTreeItem = function(item, index, cbi_publisher_insta
 	
 	if (item.sessionId === "9" && cbi_publisher_instance.hasRowGrouping == true){
 		var row = new Object();
-		var num = cbi_publisher_instance.treeLevelsCount + 1;
+		var dataStartingColumnNumber = cbi_publisher_instance.treeLevelsCount + 1;
 		row.c02 = item["c0" + (cbi_publisher_instance.treeLevelsCount + 1)];
 		row.level = (cbi_publisher_instance.treeLevelsCount + 1);
 		
 		for (var i = 3; i <= last_lvl.length - (cbi_publisher_instance.treeLevelsCount) + 1; i++) {// other columns data
 
-			num++;
-			var colData = item[cbi_publisher_instance.getColumnName(num)];
-//			if (num <= 9){
-//				colData = item["c0" + num];
-//			}
-//			else{
-//				colData = item["c" + num];
-//			}
+			dataStartingColumnNumber++;
+			var colData = item[cbi_publisher_instance.getColumnName(dataStartingColumnNumber)];
 			
 			if(colData == undefined)
 				row[cbi_publisher_instance.getColumnName(i)] = "-";
@@ -382,24 +350,6 @@ CBIPublisher.prototype.parseTreeItem = function(item, index, cbi_publisher_insta
 			else{
 				row[cbi_publisher_instance.getColumnName(i)] = parseFloat(colData).toLocaleString();// use ExtJS function to take locale into account
 			}
-//			if (i <= 9){
-//				if(colData == undefined)
-//					row["c0" + i] = "-";
-//				else if( isNaN(colData))
-//					row["c0" + i] = colData;
-//				else{
-//					row["c0" + i] = parseFloat(colData).toLocaleString();// use ExtJS function to take locale into account
-//				}
-//			}
-//			else{
-//				if(colData == undefined)
-//					row["c" + i] = "-";
-//				else if( isNaN(colData))
-//					row["c" + i] = colData;
-//				else{
-//					row["c" + i] = parseFloat(colData).toLocaleString();// use ExtJS function to take locale into account
-//				}
-//			}
 		}
 		
 		// data for the drill down menu
@@ -410,10 +360,6 @@ CBIPublisher.prototype.parseTreeItem = function(item, index, cbi_publisher_insta
 	}
 	
 	return ++index;
-}
-
-CBIPublisher.prototype.getTreeColumnName = function(index) {
-	return (index >= 9) ? "c" + (index + 1) : "c0" + (index + 1);
 }
 
 CBIPublisher.prototype.parseMenuItem = function(item, index, cbi_publisher_instance, wsParams) {
@@ -507,136 +453,6 @@ CBIPublisher.prototype.parseBarChartItem = function(item, index, cbi_publisher_i
 	return ++index;
 }
 
-CBIPublisher.prototype.parseLineChartItem = function(item, index, cbi_publisher_instance, wsParams) {
-	var chartSuffix = cbi_publisher_instance.getChartSuffix( wsParams.graphid );
-	
-	if (index === 0) {
-		cbi_publisher_instance.chart["series" + chartSuffix] = new Array();
-		cbi_publisher_instance["treeLevelsCount" + chartSuffix] = parseInt( item.countcolumnshierarchical );
-		
-		var colLabels = item.labelsText.split(',');
-		for (var i = cbi_publisher_instance["treeLevelsCount" + chartSuffix]; i < colLabels.length; i++) {
-			var serie = new Object();
-			serie.name = colLabels[i];
-			
-			var serieNotExists = true;// do not add series with the same name
-			for (var j = 0; j < cbi_publisher_instance.chart["series" + chartSuffix].length; j++) {
-				if (cbi_publisher_instance.chart["series" + chartSuffix][j].name === serie.name)
-					serieNotExists = false;
-			}
-			if (serieNotExists)
-				cbi_publisher_instance.chart["series" + chartSuffix].push(serie);
-		}
-	}
-
-	if (item.sessionId === "9") {
-		var lbl;
-		var num = cbi_publisher_instance.getColumnName(cbi_publisher_instance["treeLevelsCount" + chartSuffix]);
-//		if(cbi_publisher_instance["treeLevelsCount" + chartSuffix] < 10)
-//			num = 'c0' + cbi_publisher_instance["treeLevelsCount" + chartSuffix];
-//		else
-//			num = 'c' + cbi_publisher_instance["treeLevelsCount" + chartSuffix];
-		
-		lbl = item[num];
-		for (var i = 0; i < cbi_publisher_instance.chart["series" + chartSuffix].length; i++) {
-			cbi_publisher_instance.chart["series" + chartSuffix][i][lbl] = parseFloat( item[cbi_publisher_instance.getColumnName((cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i))] );
-//			if ((cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i) < 10){
-//				cbi_publisher_instance.chart["series" + chartSuffix][i][lbl] = parseFloat( item["c0" + (cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i)] );
-//			}
-//			else{ 
-//				cbi_publisher_instance.chart["series" + chartSuffix][i][lbl] = parseFloat( item["c" + (cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i)] );
-//			}
-		}
-	}
-	
-	return ++index;
-}
-
-CBIPublisher.prototype.parsePieChartItem = function(item, index, cbi_publisher_instance, wsParams) {
-	var chartSuffix = cbi_publisher_instance.getChartSuffix( wsParams.graphid );
-	
-	
-	if (index === 0) {
-		cbi_publisher_instance.chart["series" + chartSuffix] = new Array();
-		cbi_publisher_instance["treeLevelsCount" + chartSuffix] = parseInt( item.countcolumnshierarchical );
-	
-		var colLabels = item.labelsText.split(',');
-		for (var i = cbi_publisher_instance["treeLevelsCount" + chartSuffix]; i < colLabels.length; i++) {
-			var serie = new Object();
-			serie.name = colLabels[i];
-			
-			var serieNotExists = true;// do not add series with the same name
-			for (var j = 0; j < cbi_publisher_instance.chart["series" + chartSuffix].length; j++) {
-				if (cbi_publisher_instance.chart["series" + chartSuffix][j].name === serie.name)
-					serieNotExists = false;
-			}
-			if (serieNotExists)
-				cbi_publisher_instance.chart["series" + chartSuffix].push(serie);
-		}	
-	}
-
-	if (item.sessionId === "9") {
-		var lbl, num;
-		if(cbi_publisher_instance["treeLevelsCount" + chartSuffix] < 10)
-			num = 'c0' + cbi_publisher_instance["treeLevelsCount" + chartSuffix];
-		else
-			num = 'c' + cbi_publisher_instance["treeLevelsCount" + chartSuffix];
-		
-		lbl = item[num];
-		for (var i = 0; i < cbi_publisher_instance.chart["series" + chartSuffix].length; i++) {
-			if ((cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i) < 10){
-				cbi_publisher_instance.chart["series" + chartSuffix][i][lbl] = parseFloat( item["c0" + (cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i)] );
-			}
-			else{ 
-				cbi_publisher_instance.chart["series" + chartSuffix][i][lbl] = parseFloat( item["c" + (cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i)] );
-			}
-		}
-	}
-	
-	return ++index;
-}
-
-CBIPublisher.prototype.parseAreaChartItem = function(item, index, cbi_publisher_instance, wsParams) {
-	var chartSuffix = cbi_publisher_instance.getChartSuffix( wsParams.graphid );
-	
-	if (index === 0) {
-		cbi_publisher_instance.chart["series" + chartSuffix] = new Array();
-		cbi_publisher_instance["treeLevelsCount" + chartSuffix] = parseInt( item.countcolumnshierarchical );
-	
-		var colLabels = item.labelsText.split(',');
-		for (var i = cbi_publisher_instance["treeLevelsCount" + chartSuffix]; i < colLabels.length; i++) {
-			var serie = new Object();
-			serie.name = colLabels[i];
-			
-			var serieNotExists = true;// do not add series with the same name
-			for (var j = 0; j < cbi_publisher_instance.chart["series" + chartSuffix].length; j++) {
-				if (cbi_publisher_instance.chart["series" + chartSuffix][j].name === serie.name)
-					serieNotExists = false;
-			}
-			if (serieNotExists)
-				cbi_publisher_instance.chart["series" + chartSuffix].push(serie);
-		}	
-	}
-	
-	if (item.sessionId === "9") {
-		var lbl, num;
-		if(cbi_publisher_instance["treeLevelsCount" + chartSuffix] < 10)
-			num = 'c0' + cbi_publisher_instance["treeLevelsCount" + chartSuffix];
-		else
-			num = 'c' + cbi_publisher_instance["treeLevelsCount" + chartSuffix];
-		
-		lbl = item[num];
-		for (var i = 0; i < cbi_publisher_instance.chart["series" + chartSuffix].length; i++) {
-			if ((cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i) < 10)
-				cbi_publisher_instance.chart["series" + chartSuffix][i][lbl] = parseFloat( item["c0" + (cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i)] );
-			else 
-				cbi_publisher_instance.chart["series" + chartSuffix][i][lbl] = parseFloat( item["c" + (cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i)] );
-		}
-	}
-
-	return ++index;
-}
-
 //Temporary method that i'm currently working on
 CBIPublisher.prototype.parseChartItemTemp = function(item, index, cbi_publisher_instance, wsParams, x_values) {
 	var chartSuffix = cbi_publisher_instance.getChartSuffix( wsParams.graphid );
@@ -662,33 +478,18 @@ CBIPublisher.prototype.parseChartItemTemp = function(item, index, cbi_publisher_
 		}
 		
 		if (item.sessionId === "9") {
-			var lbl;
-			var num = cbi_publisher_instance.getColumnName(cbi_publisher_instance["treeLevelsCount" + chartSuffix]);
-//			if(cbi_publisher_instance["treeLevelsCount" + chartSuffix] < 10)
-//				num = 'c0' + cbi_publisher_instance["treeLevelsCount" + chartSuffix];
-//			else
-//				num = 'c' + cbi_publisher_instance["treeLevelsCount" + chartSuffix];
+			var dataSetNameColumn = cbi_publisher_instance.getColumnName(cbi_publisher_instance["treeLevelsCount" + chartSuffix]);
+			var dataSetParentNameColumn = cbi_publisher_instance.getColumnName(cbi_publisher_instance["treeLevelsCount" + chartSuffix] - 1);
+			var dataSetName = item[dataSetNameColumn];
+			var dataSetParentName;
 			
-			var num3 = cbi_publisher_instance.getColumnName(cbi_publisher_instance["treeLevelsCount" + chartSuffix]);
-//			if(cbi_publisher_instance["treeLevelsCount" + chartSuffix] < 9){
-//				num3 = 'c0' + (cbi_publisher_instance["treeLevelsCount" + chartSuffix] - 1);
-//			}
-//			else{
-//				num3 = 'c' + (cbi_publisher_instance["treeLevelsCount" + chartSuffix] - 1);
-//			}
-			
-			lbl = item[num];
-			if(item[num3] != null)
-				lbl2 = item[num3] + " - ";
+			if(item[dataSetParentNameColumn] != null)
+				dataSetParentName = item[dataSetParentNameColumn] + " - ";
 			else
-				lbl2 = "";
+				dataSetParentName = "";
 			
 			for (var i = 0; i < cbi_publisher_instance.chart["series" + chartSuffix].length; i++) {
-				cbi_publisher_instance.chart["series" + chartSuffix][i][lbl2 + lbl] = parseFloat (item[cbi_publisher_instance.getColumnName((cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i))]);
-//				if ((cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i) < 10)
-//					cbi_publisher_instance.chart["series" + chartSuffix][i][lbl2 + lbl] = parseFloat( item["c0" + (cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i)] );
-//				else 
-//					cbi_publisher_instance.chart["series" + chartSuffix][i][lbl2 + lbl] = parseFloat( item["c" + (cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i)] );
+				cbi_publisher_instance.chart["series" + chartSuffix][i][dataSetParentName + dataSetName] = parseFloat (item[cbi_publisher_instance.getColumnName((cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i))]);
 			}
 		}
 	}
@@ -706,47 +507,20 @@ CBIPublisher.prototype.parseChartItemTemp = function(item, index, cbi_publisher_
 		}
 		
 		if(item.sessionId === "9"){
-			var lbl, serie = new Object();
-			var num = cbi_publisher_instance.getColumnName(cbi_publisher_instance["treeLevelsCount" + chartSuffix]);
-//			if(cbi_publisher_instance["treeLevelsCount" + chartSuffix] < 10){
-//				num = 'c0' + cbi_publisher_instance["treeLevelsCount" + chartSuffix];
-//			}
-//			else{
-//				num = 'c' + cbi_publisher_instance["treeLevelsCount" + chartSuffix];
-//			}
+			var dataSetNameColumn = cbi_publisher_instance.getColumnName(cbi_publisher_instance["treeLevelsCount" + chartSuffix]);
+			var dataSetParentNameColumn = cbi_publisher_instance.getColumnName(cbi_publisher_instance["treeLevelsCount" + chartSuffix] - 1);
+			var xValueColumn = cbi_publisher_instance.getColumnName(cbi_publisher_instance["dataDepth" + chartSuffix]);
+			var dataSetName = item[dataSetNameColumn];
+			var dataSetParentName;
 			
-			var num3 = cbi_publisher_instance.getColumnName(cbi_publisher_instance["treeLevelsCount" + chartSuffix]);
-//			if(cbi_publisher_instance["treeLevelsCount" + chartSuffix] < 9){
-//				num3 = 'c0' + (cbi_publisher_instance["treeLevelsCount" + chartSuffix] - 1);
-//			}
-//			else{
-//				num3 = 'c' + (cbi_publisher_instance["treeLevelsCount" + chartSuffix] - 1);
-//			}
-			
-			var num2 = cbi_publisher_instance.getColumnName(cbi_publisher_instance["dataDepth" + chartSuffix]);
-//			if(cbi_publisher_instance["dataDepth" + chartSuffix] < 10)
-//				num2 = 'c0' + cbi_publisher_instance["dataDepth" + chartSuffix];
-//			else
-//				num2 = 'c' + cbi_publisher_instance["dataDepth" + chartSuffix];
-			
-			lbl = item[num];
-			if(item[num3] != null)
-				lbl2 = item[num3] + " - ";
+			if(item[dataSetParentNameColumn] != null)
+				dataSetParentName = item[dataSetParentNameColumn] + " - ";
 			else
-				lbl2 = "";
-//			serie.name = item[num2];			
+				dataSetParentName = "";
+			
 			cbi_publisher_instance["currentCounter" + chartSuffix]++;
-			
-			cbi_publisher_instance.chart["series" + chartSuffix][cbi_publisher_instance["currentCounter" + chartSuffix]]["name"] = item[num2];
-			
-			cbi_publisher_instance.chart["series" + chartSuffix][cbi_publisher_instance["currentCounter" + chartSuffix]][lbl2 + lbl] = parseFloat( item[cbi_publisher_instance.getColumnName((cbi_publisher_instance["dataDepth" + chartSuffix] + 1))]);
-//			if ((cbi_publisher_instance["dataDepth" + chartSuffix] + 1) < 10){
-//				cbi_publisher_instance.chart["series" + chartSuffix][cbi_publisher_instance["currentCounter" + chartSuffix]][lbl2 + lbl] = parseFloat( item["c0" + (cbi_publisher_instance["dataDepth" + chartSuffix] + 1)] );
-//			}
-//			else{ 
-//				cbi_publisher_instance.chart["series" + chartSuffix][cbi_publisher_instance["currentCounter" + chartSuffix]][lbl2 + lbl] = parseFloat( item["c" + (cbi_publisher_instance["dataDepth" + chartSuffix] + 1)] );
-//			}
-			
+			cbi_publisher_instance.chart["series" + chartSuffix][cbi_publisher_instance["currentCounter" + chartSuffix]]["name"] = item[xValueColumn];
+			cbi_publisher_instance.chart["series" + chartSuffix][cbi_publisher_instance["currentCounter" + chartSuffix]][dataSetParentName + dataSetName] = parseFloat( item[cbi_publisher_instance.getColumnName((cbi_publisher_instance["dataDepth" + chartSuffix] + 1))]);
 			if(cbi_publisher_instance["currentCounter" + chartSuffix] == cbi_publisher_instance["counter" + chartSuffix] - 1)
 				cbi_publisher_instance["currentCounter" + chartSuffix] = -1;
 		}
@@ -797,7 +571,7 @@ CBIPublisher.prototype.prepareTreeReport = function(cbi_publisher_instance) {
 		    selType: 'cellmodel',
 			listeners: {
 		    	cellclick: function(table, td, cellIndex, record, tr, rowIndex, e, eOpts) {
-		    		var columnName = cbi_publisher_instance.getTreeColumnName(cellIndex + 1);// first column is always c02, second c03 etc.
+		    		var columnName = cbi_publisher_instance.getColumnName(cellIndex + 2);// first column is always c02, second c03 etc.
 		    		if (cellIndex !== 0)
 		    			cbi_publisher_instance.treeClickAction(e, record, columnName, cbi_publisher_instance);
 		    	}
