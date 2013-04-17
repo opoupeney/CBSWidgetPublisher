@@ -130,7 +130,7 @@ CBSPublisher.prototype.init = function(dataWidget, wgt_placeholder_id, cbsWsSett
 	this.DATA_QUERY_NAME = "qWidgetPublisher";//"qWidgetPublisher2";//"qCbsFreshMoney";
 	this.CONTEXT_VALUE = {object_name: "CgbContext", object_value: "clientId"};
 	this.IMAGES_URL = "/CBSCloud/res/cb/images/publisher/";//"http://88.191.129.143/RestFixture/images/";
-	this.GENERATE_WIDGET_EVENT = "CgbGenerateWidget";
+	this.GENERATE_WIDGET_EVENT = "CgbGenerateScreen";
 	this.CONTEXT_VALUE_WGT_CALL = {object_name: "CgbCheckBookRequest", object_value: "rowId"};
 	this.SHEET_NAME_PARAMETER = "pkName";
 	
@@ -1061,10 +1061,7 @@ CBSPublisher.prototype.showTreeGridContextMenu = function(nextScreenIconDef, pre
     		text: dqMenuParams.title,
 	    	handler: function() {
 	    		var eventParams = new Array();
-	    		eventParams.push('');//TODO: empty to call all widgets except publisher, otherwise must be sheetname
 	    		eventParams.push( dqMenuParams.widgetToCall );
-	    		eventParams.push( dqMenuParams.rowId );
-	    		//cbs_publisher_instance.dataWidget.publishEvent(cbs_publisher_instance.GENERATE_WIDGET_EVENT, eventParams);
 	    		
 	    		dfSetContextValue(cbs_publisher_instance.CONTEXT_VALUE_WGT_CALL.object_name, cbs_publisher_instance.CONTEXT_VALUE_WGT_CALL.object_value, dqMenuParams.rowId, function() {
 	    			cbs_publisher_instance.dataWidget.publishEvent(cbs_publisher_instance.GENERATE_WIDGET_EVENT, eventParams);
