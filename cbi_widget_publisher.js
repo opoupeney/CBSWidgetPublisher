@@ -113,7 +113,7 @@ CBIPublisher.prototype.execute = function() {
 	// build report elements
 	//this.sheetId = this.dataWidget.parameters.sheetId;// for the cloud integration
 	//SheetID's for testing: 100002301, 100002317, 100002322, 100003313, 100003421, 100001732, 100000800
-	this.sheetid = "100001732";// for the local testing - default value
+	this.sheetid = "100003421";// for the local testing - default value
 	var wsParams = {sheetid: this.sheetid};
 	this.buildReport(this.SHEET_DATA_QUERY_NAME, this.parseTreeItem, this.prepareTreeReport, wsParams);// TREE
 	
@@ -127,62 +127,79 @@ CBIPublisher.prototype.buildReport = function(dataQueryName, parseCallback, prep
 	var dq = new DataQuery(dataQueryName);
 	dq.setParameters(wsParams);
 	
-	dq.execute(null, function(dataSet) {
-		var buffer = dataSet.getData();
-		if (buffer !== null && buffer["dsbResult"] !== null) {
-			var items = null;
-			if (buffer[0] !== null && buffer[0] !== undefined)
-				items = buffer[0].dsbResult;
-			else
-				items = buffer.dsbResult;
-			
-			var parseContinue = true;
-			var parseIndex = 0;
-			var loopIndex = 0;
-			var loopLimit = 2000;
-			
-			cbi_publisher_instance.setItems(items);
-			
-			//Find out how many x-values this graph has.
-			if(items[0].graphType != null){
-				var x_values = 0, val, prev_val, entered = false;
-				var num = cbi_publisher_instance.getColumnName(items[0].countcolumnshierarchical);
-				for(var i =0; i<items.length; i++){
-					if(items[i].sessionId == 9 && entered == false){
-						val = items[i][num];
-						prev_val = items[i][num];
-						entered = true;
+	if(wsParams.graphid != "000000000"){
+		dq.execute(null, function(dataSet) {
+			var buffer = dataSet.getData();
+			if (buffer !== null && buffer["dsbResult"] !== null) {
+				var items = null;
+				if (buffer[0] !== null && buffer[0] !== undefined)
+					items = buffer[0].dsbResult;
+				else
+					items = buffer.dsbResult;
+				
+				var parseContinue = true;
+				var parseIndex = 0;
+				var loopIndex = 0;
+				var loopLimit = 2000;
+				
+				cbi_publisher_instance.setItems(items);
+				if(items[0] != null && items[0].graphType != null){
+					var x_values = cbi_publisher_instance.findXValuesNumber(cbi_publisher_instance);
+				}
+//				//Find out how many x-values this graph has.
+//				if(items[0] != null && items[0].graphType != null){
+//					var x_values = 0, val, prev_val, entered = false;
+//					var num = cbi_publisher_instance.getColumnName(items[0].countcolumnshierarchical);
+//					for(var i =0; i<items.length; i++){
+//						if(items[i].sessionId == 9 && entered == false){
+//							val = items[i][num];
+//							prev_val = items[i][num];
+//							entered = true;
+//						}
+//						if(items[i].sessionId == 9){
+//							prev_val = val;
+//							val = items[i][num];
+//							if(val == prev_val){
+//								x_values++;
+//							}
+//							else{
+//								i = items.length;
+//							}
+//						}
+//					}
+//				}
+				
+				//Find out if the menu of charts has a graph or not.
+				var hasGraph = false;
+				if(dataSet.parentObject.name == "qWidgetPublisherCBI_menu"){
+					for(var j = 0; j<items.length; j++){
+						if(items[j].c08 != null && items[j].c08.indexOf("G_") === 0){
+							hasGraph = true;
+						}
 					}
-					if(items[i].sessionId == 9){
-						prev_val = val;
-						val = items[i][num];
-						if(val == prev_val){
-							x_values++;
-						}
-						else{
-							i = items.length;
-						}
+					if(hasGraph == false){
+						cbi_publisher_instance.buildChartFromTree = true;
 					}
 				}
-			}
-			
-			while (parseContinue) {
-				loopIndex++;
-				if (items[parseIndex]) {
-					parseIndex = parseCallback(items[parseIndex], parseIndex, cbi_publisher_instance, wsParams, x_values);
-					if (parseIndex >= items.length || loopIndex > loopLimit) {
+				
+				while (parseContinue) {
+					loopIndex++;
+					if (items[parseIndex]) {
+						parseIndex = parseCallback(items[parseIndex], parseIndex, cbi_publisher_instance, wsParams, x_values);
+						if (parseIndex >= items.length || loopIndex > loopLimit) {
+							parseContinue = false;
+						}	
+					}
+					else {// only one element instead of an Array
+						parseIndex = parseCallback(items, 0, cbi_publisher_instance, wsParams);
 						parseContinue = false;
-					}	
+					}
 				}
-				else {// only one element instead of an Array
-					parseIndex = parseCallback(items, 0, cbi_publisher_instance, wsParams);
-					parseContinue = false;
-				}
+				
+				cbi_publisher_instance.renderReportElement(prepareGraphicalComponentCallback(cbi_publisher_instance, wsParams), wsParams);
 			}
-			
-			cbi_publisher_instance.renderReportElement(prepareGraphicalComponentCallback(cbi_publisher_instance, wsParams), wsParams);
-		}
-	});
+		});
+	}
 }
 
 //Recursive method that will get all the headers and group them accordingly
@@ -370,6 +387,10 @@ CBIPublisher.prototype.parseMenuItem = function(item, index, cbi_publisher_insta
 			cbi_publisher_instance.drillDownMenu.push({ 'title': item.c08.substring(2, item.c08.length), 'auditCellDataId': item.c07 });
 		}
 	}
+	else if (cbi_publisher_instance.buildChartFromTree === true){
+		cbi_publisher_instance.chartsMenu.push({ 'graphid': '000000000', 'menuTitle':'Default Graph'});
+	}
+
 	return ++index;
 }
 
@@ -390,11 +411,7 @@ CBIPublisher.prototype.parseChartItem = function(item, index, cbi_publisher_inst
 	
 	if (chartType.BAR_VERT_STACK)
 		return cbi_publisher_instance.parseBarChartItem(item, index, cbi_publisher_instance, wsParams);
-	else if (chartType.LINE_VERT_ABS)
-		return cbi_publisher_instance.parseChartItemTemp(item, index, cbi_publisher_instance, wsParams, x_values);
-	else if (chartType.PIE)
-		return cbi_publisher_instance.parseChartItemTemp(item, index, cbi_publisher_instance, wsParams, x_values);
-	else if (chartType.AREA_VERT_PERCENT)
+	else if (chartType.LINE_VERT_ABS || chartType.PIE || chartType.AREA_VERT_PERCENT || chartType.BAR_VERT_CLUST)
 		return cbi_publisher_instance.parseChartItemTemp(item, index, cbi_publisher_instance, wsParams, x_values);
 }
 
@@ -409,6 +426,8 @@ CBIPublisher.prototype.getChartType = function(graphType) {
 		chartType.PIE = true;
 	else if (graphType === "AREA_VERT_PERCENT")
 		chartType.AREA_VERT_PERCENT = true;
+	else if (graphType === "BAR_VERT_CLUST")
+		chartType.BAR_VERT_CLUST = true;
 	
 	return chartType;
 }
@@ -457,12 +476,19 @@ CBIPublisher.prototype.parseBarChartItem = function(item, index, cbi_publisher_i
 CBIPublisher.prototype.parseChartItemTemp = function(item, index, cbi_publisher_instance, wsParams, x_values) {
 	var chartSuffix = cbi_publisher_instance.getChartSuffix( wsParams.graphid );
 	
-	if(item.labelsText.split(',')[item.labelsText.split(',').length - 1] != "."){
+	if(item.colHvCond === "true" || chartSuffix == "_000000000"){
 		if (index === 0) {
 			cbi_publisher_instance.chart["series" + chartSuffix] = new Array();
 			cbi_publisher_instance["treeLevelsCount" + chartSuffix] = parseInt( item.countcolumnshierarchical );
 		
-			var colLabels = item.labelsText.split(',');
+			if(chartSuffix == "_000000000"){
+				var allLabels = item.labelsText.split('\n');
+				var colLabels = allLabels[0].split(',');
+			}
+			else{
+				var colLabels = item.labelsText.split(',');
+			}
+			
 			for (var i = cbi_publisher_instance["treeLevelsCount" + chartSuffix]; i < colLabels.length; i++) {
 				var serie = new Object();
 				serie.name = colLabels[i];
@@ -578,7 +604,14 @@ CBIPublisher.prototype.prepareTreeReport = function(cbi_publisher_instance) {
 	    	}
 		});
 	}
-		
+	
+	//If there is no chart corresponding to the current sheetId, then a chrat is built using the data from the tree
+	if(cbi_publisher_instance.buildChartFromTree === true){
+		var wsParams = new Object();
+		wsParams.graphid = "000000000";
+		cbi_publisher_instance.renderReportElement(cbi_publisher_instance.prepareChartReport(cbi_publisher_instance, wsParams), wsParams);
+	}
+	
 	return panelItems;
 }
 
@@ -602,7 +635,8 @@ CBIPublisher.prototype.prepareMenuReport = function(cbi_publisher_instance) {
 	
 	// CHARTS
 	for (var i = 0; i < cbi_publisher_instance.chartsMenu.length; i++) {
-		cbi_publisher_instance.buildReport(cbi_publisher_instance.CHART_DATA_QUERY_NAME,
+		if(cbi_publisher_instance.chartsMenu[i].graphid != null)
+			cbi_publisher_instance.buildReport(cbi_publisher_instance.CHART_DATA_QUERY_NAME,
 				cbi_publisher_instance.parseChartItem, cbi_publisher_instance.prepareChartReport,
 				{"graphid": cbi_publisher_instance.chartsMenu[i].graphid});
 	}
@@ -656,7 +690,7 @@ CBIPublisher.prototype.renderReport = function() {
 }
 
 CBIPublisher.prototype.renderReportElement = function(panelItems, wsParams) {
-	console.log(this);
+//	console.log(this);
 	if (panelItems[0] && panelItems[0].xtype === "chart") {
 		var tab = this.reportPanel.getComponent(this.tabPanelId).getComponent(wsParams.graphid);
 		tab.add(panelItems);
@@ -709,15 +743,49 @@ CBIPublisher.prototype.treeClickAction = function(event, record, columnName, cbi
  */
 function CBIPublisherChartBuilder(cbi_publisher_instance, wsParams) {
 	this.cbi_publisher_instance = cbi_publisher_instance;
-	this.graphid = wsParams.graphid;
+	if(wsParams != null){
+		this.graphid = wsParams.graphid;
+		this.chartType = cbi_publisher_instance.getChartType( wsParams.graphType );
+	}
+}
+
+CBIPublisher.prototype.parseTreeForChart = function(cbi_publisher_instance) {
 	
-	this.chartType = cbi_publisher_instance.getChartType( wsParams.graphType );	
+}
+
+//Find out how many x-values this graph has.
+CBIPublisher.prototype.findXValuesNumber = function(cbi_publisher_instance) {
+	var items = cbi_publisher_instance.items;
+	var x_values = 0, val, prev_val, entered = false;
+	var num = cbi_publisher_instance.getColumnName(items[0].countcolumnshierarchical);
+	
+	for(var i =0; i<items.length; i++){
+		if(items[i].sessionId == 9 && entered == false){
+			val = items[i][num];
+			prev_val = items[i][num];
+			entered = true;
+		}
+		if(items[i].sessionId == 9){
+			prev_val = val;
+			val = items[i][num];
+			if(val == prev_val){
+				x_values++;
+			}
+			else{
+				i = items.length;
+			}
+		}
+	}
+	
+	return x_values
 }
 
 CBIPublisherChartBuilder.prototype.type = "CBIPublisherChartBuilder";
 
 CBIPublisherChartBuilder.prototype.buildCharts = function() {
-	if (this.chartType.BAR_VERT_STACK)
+	if(this.graphid == "000000000" || this.chartType.BAR_VERT_CLUSTER)
+		return this.buildVerticalBarChart(this.cbi_publisher_instance.chart);
+	else if (this.chartType.BAR_VERT_STACK)
 		return this.buildStackedBarChart(this.cbi_publisher_instance.chart);
 	else if (this.chartType.LINE_VERT_ABS)
 		return this.buildLineChart(this.cbi_publisher_instance.chart);
@@ -725,6 +793,8 @@ CBIPublisherChartBuilder.prototype.buildCharts = function() {
 		return this.buildAreaChart(this.cbi_publisher_instance.chart);
 	else if (this.chartType.PIE)
 		return this.buildPieChart(this.cbi_publisher_instance.chart);
+	else if (this.chartType.BAR_VERT_CLUST)
+		return this.buildVerticalBarChart(this.cbi_publisher_instance.chart);
 }
 
 CBIPublisherChartBuilder.prototype.buildStackedBarChart = function(chartDef) {
@@ -933,7 +1003,7 @@ CBIPublisherChartBuilder.prototype.buildPieChart = function(chartDef) {
 		fields: ['name', 'data'],
 		data: data
 	});	
-
+	
 	var chart = Ext.create('Ext.chart.Chart', {
 	    animate: true,
 	    store: store,
@@ -969,6 +1039,101 @@ CBIPublisherChartBuilder.prototype.buildPieChart = function(chartDef) {
 	    }]
 	});
 	  
+    return chart;
+}
+
+CBIPublisherChartBuilder.prototype.buildVerticalBarChart = function(chartDef) {
+	//Only if the sheet doesn't have a chart, we need to parse the tree again to build the vertical chart based on it.
+	if(this.cbi_publisher_instance.buildChartFromTree == true){
+		var parseIndex = 0, loopIndex = 0, loopLimit = 2000, parseContinue = true, wsParams = new Object();
+		var items = this.cbi_publisher_instance.items;
+		var x_values = this.cbi_publisher_instance.findXValuesNumber(this.cbi_publisher_instance);
+		wsParams.graphid = "000000000";
+		this.graphid = "000000000";
+//		this.cbi_publisher_instance["treeLevelsCount_000000000"] = parseInt( items[0].countcolumnshierarchical );
+		
+		while (parseContinue) {
+			loopIndex++;
+			if (items[parseIndex]) {
+				parseIndex = this.cbi_publisher_instance.parseChartItemTemp(items[parseIndex], parseIndex, this.cbi_publisher_instance, wsParams, x_values);
+				if (parseIndex >= items.length || loopIndex > loopLimit) {
+					parseContinue = false;
+				}	
+			}
+			else {// only one element instead of an Array
+				parseIndex = this.cbi_publisher_instance.parseChartItemTemp(items, 0, this.cbi_publisher_instance, wsParams);
+				parseContinue = false;
+			}
+		}
+		chartDef = this.cbi_publisher_instance.chart;
+	}
+	
+	var chartSuffix = this.cbi_publisher_instance.getChartSuffix(this.graphid);
+	
+	var fields = new Array();
+	for (var propName in chartDef["series" + chartSuffix][0]) {
+		if (chartDef["series" + chartSuffix][0].hasOwnProperty(propName))
+			fields.push(propName);
+	}
+	
+	var xFields = fields.slice(0, 1);
+	var yFields = fields.slice(1, fields.length);
+	
+	var store = Ext.create('Ext.data.JsonStore', {
+		fields: fields,
+		data: chartDef["series" + chartSuffix]
+	});
+	
+	var chart = Ext.create('Ext.chart.Chart', {
+	    width: 500,
+	    height: 300,
+	    animate: true,
+	    store: store,
+	    axes: [
+	        {
+	            type: 'Numeric',
+	            position: 'left',
+	            fields: yFields,
+	            label: {
+	                renderer: Ext.util.Format.numberRenderer('0,0')
+	            },
+	            title: 'Sample Values',
+	            grid: true,
+	            minimum: 0
+	        },
+	        {
+	            type: 'Category',
+	            position: 'bottom',
+	            fields: xFields,
+	            title: 'Sample Metrics'
+	        }
+	    ],
+	    series: [
+	        {
+	            type: 'column',
+	            axis: 'left',
+	            highlight: true,
+	            tips: {
+	              trackMouse: true,
+	              width: 140,
+	              height: 28,
+	              renderer: function(storeItem, item) {
+	                this.setTitle(storeItem.get('name') + ': ' + storeItem.get('data1') + ' $');
+	              }
+	            },
+	            label: {
+	              display: 'insideEnd',
+	              'text-anchor': 'middle',
+	                field: 'data',
+	                renderer: Ext.util.Format.numberRenderer('0'),
+	                orientation: 'vertical',
+	                color: '#333'
+	            },
+	            xField: xFields,
+	            yField: yFields
+	        }
+	    ]
+	});
     return chart;
 }
 
