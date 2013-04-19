@@ -111,9 +111,9 @@ CBIPublisher.prototype.execute = function() {
 	this.renderReport();
 	
 	// build report elements
-	//this.sheetId = this.dataWidget.parameters.sheetId;// for the cloud integration
+	//this.sheetid = this.dataWidget.parameters.sheetId;// for the cloud integration
 	//SheetID's for testing: 100002301, 100002317, 100002322, 100003313, 100003421, 100001732, 100000800
-	this.sheetid = "100001732";// for the local testing - default value
+	this.sheetid = "100002301";// for the local testing - default value
 	var wsParams = {sheetid: this.sheetid};
 	this.buildReport(this.SHEET_DATA_QUERY_NAME, this.parseTreeItem, this.prepareTreeReport, wsParams);// TREE
 	
