@@ -113,7 +113,7 @@ CBIPublisher.prototype.execute = function() {
 	// build report elements
 	//this.sheetId = this.dataWidget.parameters.sheetId;// for the cloud integration
 	//SheetID's for testing: 100002301, 100002317, 100002322, 100003313, 100003421, 100001732, 100000800
-	this.sheetid = "100003421";// for the local testing - default value
+	this.sheetid = "100002301";// for the local testing - default value
 	var wsParams = {sheetid: this.sheetid};
 	this.buildReport(this.SHEET_DATA_QUERY_NAME, this.parseTreeItem, this.prepareTreeReport, wsParams);// TREE
 	
@@ -146,28 +146,6 @@ CBIPublisher.prototype.buildReport = function(dataQueryName, parseCallback, prep
 				if(items[0] != null && items[0].graphType != null){
 					var x_values = cbi_publisher_instance.findXValuesNumber(cbi_publisher_instance);
 				}
-//				//Find out how many x-values this graph has.
-//				if(items[0] != null && items[0].graphType != null){
-//					var x_values = 0, val, prev_val, entered = false;
-//					var num = cbi_publisher_instance.getColumnName(items[0].countcolumnshierarchical);
-//					for(var i =0; i<items.length; i++){
-//						if(items[i].sessionId == 9 && entered == false){
-//							val = items[i][num];
-//							prev_val = items[i][num];
-//							entered = true;
-//						}
-//						if(items[i].sessionId == 9){
-//							prev_val = val;
-//							val = items[i][num];
-//							if(val == prev_val){
-//								x_values++;
-//							}
-//							else{
-//								i = items.length;
-//							}
-//						}
-//					}
-//				}
 				
 				//Find out if the menu of charts has a graph or not.
 				var hasGraph = false;
@@ -850,7 +828,7 @@ CBIPublisherChartBuilder.prototype.buildStackedBarChart = function(chartDef) {
 	        position: 'left',
 	        fields: yFields,
 	        label: {
-	            renderer: Ext.util.Format.numberRenderer('0.000')
+	            renderer: Ext.util.Format.numberRenderer('0,0')
 	        },
 	        grid: true,
 	        minimum: 0
@@ -870,7 +848,7 @@ CBIPublisherChartBuilder.prototype.buildStackedBarChart = function(chartDef) {
 	        	width: 200,
 	        	height: 35,
 	        	renderer: function(storeItem, item) {
-	        		this.setTitle(storeItem.get('name') + ': ' + Ext.util.Format.number(item.value[1], '0.000'));
+	        		this.setTitle(storeItem.get('name') + ': ' + Ext.util.Format.number(item.value[1], '0,0'));
 	        	}
 	        },
 	        xField: xFields,
@@ -893,34 +871,68 @@ CBIPublisherChartBuilder.prototype.buildLineChart = function(chartDef) {
 	var xFields = fields.slice(0, 1);
 	var yFields = fields.slice(1, fields.length);
 	
-	var series = new Array();
-	for (var i = 1; i < fields.length; i++) {
-		series.push({ 'type': 'line', 'xField': 'name', 'yField': fields[i] });
-	}
+//	To remove all the parent labels from the yFields if there are no duplicates
+//	var duplicate = false;
+//	for(var j =0; j<yFields.length; j++){
+//		for(var k =j + 1; k <yFields.length - j; k ++){
+//			if(yFields[j].split(' - ')[1] === yFields[k].split(' - ')[1]){
+//				duplicate = true;
+//			}
+//		}
+//	}
+//	if(duplicate == false){
+//		for(var n = 0; n<yFields.length; n++)
+//			yFields[n] = yFields[n].split(' - ')[1];
+//	}
 	
+	var series = new Array();
+	for (var i = 0; i < yFields.length; i++) {
+		var value = yFields[i];
+		series.push({ 'type': 'line', 'xField': xFields[0], 'yField': yFields[i], axis: 'left',
+			highlight:{ size: 7, radius: 7}, markerConfig:{ type: 'circle', size: 4, radius: 4, 'stroke-width': 0},
+			tips: {trackMouse: true, width:180, height: 28, renderer: function(storeItem, item){
+				this.setTitle(storeItem.get('name') + ": " + Ext.util.Format.number(item.value[1], '0,0'));
+			} }
+		});
+	}
+//	series.push({'type': 'line', 'xField' :xFields[0], 'yField': 0, axis:'left', showMarkers: true, showInLegend: true});
+
 	var store = Ext.create('Ext.data.JsonStore', {
 		fields: fields,
 	    data: chartDef["series" + chartSuffix]
 	});
 	
-	var chart = {
-		xtype:	 'chart',
-		store: store,
-		legend: {
-            position: 'right'
-        },
-        axes: [{
-        	type: 'Numeric',
-        	position: 'left',
-        	grid: true,
-        	fields: yFields
-        },{
-        	type: 'Category',
-        	position: 'bottom',
-        	fields: xFields
-        }],
-        series: series
-	};
+	var chart = Ext.create('Ext.chart.Chart', {
+	    animate: true,
+	    store: store,
+	    legend: {
+	    	position: 'right'
+	    },
+	    showInLegend: true,
+	    axes: [
+	        {
+	            type: 'Numeric',
+	            position: 'left',
+	            fields: yFields,
+	            label: {
+	                renderer: Ext.util.Format.numberRenderer('0,0')
+	            },
+	            grid: true,
+	            minimum: 0
+	        },
+	        {
+	            type: 'Category',
+	            position: 'bottom',
+	            fields: xFields,
+	            label: {
+	            	rotate: {
+	            		degrees: 315
+	            	}
+	            }
+	        }
+	    ],
+	    series: series
+	});
     
     return chart;
 }
@@ -960,6 +972,9 @@ CBIPublisherChartBuilder.prototype.buildAreaChart = function(chartDef) {
                     stroke: '#bbb',
                     'stroke-width': 1
                 }
+            },
+            label: {
+                renderer: Ext.util.Format.numberRenderer('0,0')
             },
             minimum: 0,
             adjustMinimumByMajorUnit: 0
@@ -1008,6 +1023,9 @@ CBIPublisherChartBuilder.prototype.buildPieChart = function(chartDef) {
 	    animate: true,
 	    store: store,
 	    theme: 'Base:gradients',
+        legend:{
+        	position: "right"
+        },
 	    series: [{
 	        type: 'pie',
 	        angleField: 'data',
@@ -1085,8 +1103,6 @@ CBIPublisherChartBuilder.prototype.buildVerticalBarChart = function(chartDef) {
 	});
 	
 	var chart = Ext.create('Ext.chart.Chart', {
-	    width: 500,
-	    height: 300,
 	    animate: true,
 	    store: store,
 	    axes: [
@@ -1097,7 +1113,6 @@ CBIPublisherChartBuilder.prototype.buildVerticalBarChart = function(chartDef) {
 	            label: {
 	                renderer: Ext.util.Format.numberRenderer('0,0')
 	            },
-	            title: 'Sample Values',
 	            grid: true,
 	            minimum: 0
 	        },
@@ -1105,7 +1120,11 @@ CBIPublisherChartBuilder.prototype.buildVerticalBarChart = function(chartDef) {
 	            type: 'Category',
 	            position: 'bottom',
 	            fields: xFields,
-	            title: 'Sample Metrics'
+	            label:{
+	            	rotation:{
+	            		degree: 315
+	            	}
+	            }
 	        }
 	    ],
 	    series: [
@@ -1118,7 +1137,7 @@ CBIPublisherChartBuilder.prototype.buildVerticalBarChart = function(chartDef) {
 	              width: 140,
 	              height: 28,
 	              renderer: function(storeItem, item) {
-	                this.setTitle(storeItem.get('name') + ': ' + storeItem.get('data1') + ' $');
+	                this.setTitle(item.value[1]);
 	              }
 	            },
 	            label: {
