@@ -113,7 +113,7 @@ CBIPublisher.prototype.execute = function() {
 	// build report elements
 	//this.sheetId = this.dataWidget.parameters.sheetId;// for the cloud integration
 	//SheetID's for testing: 100002301, 100002317, 100002322, 100003313, 100003421, 100001732, 100000800
-	this.sheetid = "100003421";// for the local testing - default value
+	this.sheetid = "100001732";// for the local testing - default value
 	var wsParams = {sheetid: this.sheetid};
 	this.buildReport(this.SHEET_DATA_QUERY_NAME, this.parseTreeItem, this.prepareTreeReport, wsParams);// TREE
 	
@@ -828,7 +828,7 @@ CBIPublisherChartBuilder.prototype.buildStackedBarChart = function(chartDef) {
 	        position: 'left',
 	        fields: yFields,
 	        label: {
-	            renderer: Ext.util.Format.numberRenderer('0,0')
+	            renderer: Ext.util.Format.numberRenderer('0,0.00')
 	        },
 	        grid: true,
 	        minimum: 0
@@ -848,7 +848,7 @@ CBIPublisherChartBuilder.prototype.buildStackedBarChart = function(chartDef) {
 	        	width: 200,
 	        	height: 35,
 	        	renderer: function(storeItem, item) {
-	        		this.setTitle(storeItem.get('name') + ': ' + Ext.util.Format.number(item.value[1], '0,0'));
+	        		this.setTitle(storeItem.get('name') + ': ' + Ext.util.Format.number(item.value[1], '0,0.00'));
 	        	}
 	        },
 	        xField: xFields,
@@ -891,7 +891,7 @@ CBIPublisherChartBuilder.prototype.buildLineChart = function(chartDef) {
 		series.push({ 'type': 'line', 'xField': xFields[0], 'yField': yFields[i], axis: 'left',
 			highlight:{ size: 7, radius: 7}, markerConfig:{ type: 'circle', size: 4, radius: 4, 'stroke-width': 0},
 			tips: {trackMouse: true, width:140, height: 40, renderer: function(storeItem, item){
-				this.setTitle(storeItem.get('name') + ": " + Ext.util.Format.number(item.value[1], '0,0'));
+				this.setTitle(storeItem.get('name') + ": " + Ext.util.Format.number(item.value[1], '0,0.00'));
 			} }
 		});
 	}
@@ -915,10 +915,9 @@ CBIPublisherChartBuilder.prototype.buildLineChart = function(chartDef) {
 	            position: 'left',
 	            fields: yFields,
 	            label: {
-	                renderer: Ext.util.Format.numberRenderer('0,0')
+	                renderer: Ext.util.Format.numberRenderer('0,0.00')
 	            },
 	            grid: true,
-	            minimum: 0
 	        },
 	        {
 	            type: 'Category',
@@ -974,7 +973,7 @@ CBIPublisherChartBuilder.prototype.buildAreaChart = function(chartDef) {
                 }
             },
             label: {
-                renderer: Ext.util.Format.numberRenderer('0,0')
+                renderer: Ext.util.Format.numberRenderer('0,0.00')
             },
             minimum: 0,
             adjustMinimumByMajorUnit: 0
@@ -1111,7 +1110,7 @@ CBIPublisherChartBuilder.prototype.buildVerticalBarChart = function(chartDef) {
 	            position: 'left',
 	            fields: yFields,
 	            label: {
-	                renderer: Ext.util.Format.numberRenderer('0,0')
+	                renderer: Ext.util.Format.numberRenderer('0,0.00')
 	            },
 	            grid: true,
 	            minimum: 0
@@ -1137,7 +1136,7 @@ CBIPublisherChartBuilder.prototype.buildVerticalBarChart = function(chartDef) {
 	              width: 140,
 	              height: 40,
 	              renderer: function(storeItem, item) {
-	                this.setTitle(storeItem.get('name') + ": " + Ext.util.Format.number(item.value[1], '0,0'));
+	                this.setTitle(storeItem.get('name') + ": " + Ext.util.Format.number(item.value[1], '0,0.00'));
 	              }
 	            },
 	            label: {
