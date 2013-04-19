@@ -141,7 +141,7 @@ CBSPublisher.prototype.init = function(dataWidget, wgt_placeholder_id, cbsWsSett
 	try {
 		this.NO_DATA_MESSAGE = dictionary.terms.CBS.no_data_found;
 	} catch(e) {
-		console.error(e);
+		console.log('There is no dictionary.terms.CBS.no_data_found');
 	}
 	
 	// general data
@@ -233,11 +233,12 @@ CBSPublisher.prototype.executeFromExternalCall = function() {
 	var cbs_publisher_instance = this;
 	
 	// init the WsSettings using externally passed parameters
-	this.cbsWsSettings.usr = 'MPELPEL';//real data
-	this.cbsWsSettings.lng = user.locale.name;
+	this.cbsWsSettings.usr = user.properties.cas_attr.loginShell;//'MPELPEL';
+	this.cbsWsSettings.lng = user.properties.cas_attr.preferredLanguage;
 	this.cbsWsSettings.roles = 'r';
-	this.cbsWsSettings.client = appcontext[this.CONTEXT_VALUE.object_name][this.CONTEXT_VALUE.object_value];// get the clienId from the context
 	this.cbsWsSettings.sheetname = this.dataWidget.parameters[this.SHEET_NAME_PARAMETER];
+	if ( appcontext[this.CONTEXT_VALUE.object_name] )
+		this.cbsWsSettings.client = appcontext[this.CONTEXT_VALUE.object_name][this.CONTEXT_VALUE.object_value];// get the clienId from the context
 	
 	//this.cbsWsSettings.client = '021249';
 	//this.cbsWsSettings.client = '741017';
@@ -260,6 +261,7 @@ CBSPublisher.prototype.executeFromExternalCall = function() {
 	//this.cbsWsSettings.sheetname = 'pk_dp_freshmoney.f_get_freshrm';//12
 	//this.cbsWsSettings.sheetname = 'PK_DP_DEMCHQ_TREE.report';//13 - demande cheque, client must be 741017
 	//this.cbsWsSettings.sheetname = 'pk_dp_bale2.f_get_bale2rm';//14
+	//this.cbsWsSettings.sheetname = 'pk_dp_oper.f_get_operssummaryrm';//15
 	
 	// OLD FAKE REPORTS
 	//this.cbsWsSettings.sheetname = 'PK_DP_QC_CPT2.report';
@@ -1062,9 +1064,16 @@ CBSPublisher.prototype.showTreeGridContextMenu = function(nextScreenIconDef, pre
 	    	handler: function() {
 	    		var eventParams = new Array();
 	    		eventParams.push( dqMenuParams.widgetToCall );
+	    		//eventParams.push({ "name": dqMenuParams.widgetToCall });
 	    		
 	    		dfSetContextValue(cbs_publisher_instance.CONTEXT_VALUE_WGT_CALL.object_name, cbs_publisher_instance.CONTEXT_VALUE_WGT_CALL.object_value, dqMenuParams.rowId, function() {
 	    			cbs_publisher_instance.dataWidget.publishEvent(cbs_publisher_instance.GENERATE_WIDGET_EVENT, eventParams);
+	    			console.log("===> Redirection");
+	    			console.log("app context " + cbs_publisher_instance.CONTEXT_VALUE_WGT_CALL.object_name + "." +
+	    				cbs_publisher_instance.CONTEXT_VALUE_WGT_CALL.object_value + ": " +
+	    				appcontext[cbs_publisher_instance.CONTEXT_VALUE_WGT_CALL.object_name][cbs_publisher_instance.CONTEXT_VALUE_WGT_CALL.object_value]);
+	    			console.log("event name: " + cbs_publisher_instance.GENERATE_WIDGET_EVENT + ", event params:");
+	    			console.log(eventParams);
 	    		});
 	    	}
 	    }
