@@ -113,7 +113,7 @@ CBIPublisher.prototype.execute = function() {
 	// build report elements
 	//this.sheetid = this.dataWidget.parameters.sheetId;// for the cloud integration
 	//SheetID's for testing: 100002301, 100002317, 100002322, 100003313, 100003421, 100001732, 100000800
-	this.sheetid = "100002301";// for the local testing - default value
+	this.sheetid = "100001732";// for the local testing - default value
 	var wsParams = {sheetid: this.sheetid};
 	this.buildReport(this.SHEET_DATA_QUERY_NAME, this.parseTreeItem, this.prepareTreeReport, wsParams);// TREE
 	
@@ -1032,7 +1032,7 @@ CBIPublisherChartBuilder.prototype.buildPieChart = function(chartDef) {
 	        tips: {
 	            trackMouse: true,
 	            width: 140,
-	            height: 28,
+	            height: 40,
 	            renderer: function(storeItem, item) {
 	                // calculate and display percentage on hover
 	                var total = 0;
@@ -1095,7 +1095,7 @@ CBIPublisherChartBuilder.prototype.buildVerticalBarChart = function(chartDef) {
 	
 	var xFields = fields.slice(0, 1);
 	var yFields = fields.slice(1, fields.length);
-	
+		
 	var store = Ext.create('Ext.data.JsonStore', {
 		fields: fields,
 		data: chartDef["series" + chartSuffix]
@@ -1104,6 +1104,9 @@ CBIPublisherChartBuilder.prototype.buildVerticalBarChart = function(chartDef) {
 	var chart = Ext.create('Ext.chart.Chart', {
 	    animate: true,
 	    store: store,
+	    legend:{
+	    	position: 'right'
+	    },
 	    axes: [
 	        {
 	            type: 'Numeric',
@@ -1113,7 +1116,6 @@ CBIPublisherChartBuilder.prototype.buildVerticalBarChart = function(chartDef) {
 	                renderer: Ext.util.Format.numberRenderer('0,0.00')
 	            },
 	            grid: true,
-	            minimum: 0
 	        },
 	        {
 	            type: 'Category',
@@ -1130,6 +1132,7 @@ CBIPublisherChartBuilder.prototype.buildVerticalBarChart = function(chartDef) {
 	        {
 	            type: 'column',
 	            axis: 'left',
+	            showInLegend: true,
 	            highlight: true,
 	            tips: {
 	              trackMouse: true,
