@@ -55,7 +55,6 @@ CBIPublisher.prototype.type="CBIPublisher";
 
 CBIPublisher.prototype.init = function(dataWidget, wgtPlaceholderId) {
 	// CONSTANTS
-//	this.SHEET_DATA_QUERY_NAME = "qWidgetPublisherCBIStatic";
 	this.SHEET_DATA_QUERY_NAME = "qWidgetPublisherCBI";
 	this.MENU_DATA_QUERY_NAME = "qWidgetPublisherCBI_menu";
 	this.CHART_DATA_QUERY_NAME = "qWidgetPublisherCBI_chart";
@@ -112,8 +111,8 @@ CBIPublisher.prototype.execute = function() {
 	
 	// build report elements
 	//this.sheetid = this.dataWidget.parameters.sheetId;// for the cloud integration
-	//SheetID's for testing: 100002301, 100002317, 100002322, 100003313, 100003421, 100001732, 100000800
-	this.sheetid = "100001732";// for the local testing - default value
+	//SheetID's for testing: 100002301, 100002317, 100002322, 100003313, 100003421, 100001732, 100000140, 100000800
+	this.sheetid = "100000140";// for the local testing - default value
 	var wsParams = {sheetid: this.sheetid};
 	this.buildReport(this.SHEET_DATA_QUERY_NAME, this.parseTreeItem, this.prepareTreeReport, wsParams);// TREE
 	
@@ -142,6 +141,7 @@ CBIPublisher.prototype.buildReport = function(dataQueryName, parseCallback, prep
 				var loopIndex = 0;
 				var loopLimit = 2000;
 				
+				//find the x-values of the chart
 				cbi_publisher_instance.setItems(items);
 				if(items[0] != null && items[0].graphType != null){
 					var x_values = cbi_publisher_instance.findXValuesNumber(cbi_publisher_instance);
@@ -958,7 +958,7 @@ CBIPublisherChartBuilder.prototype.buildAreaChart = function(chartDef) {
         animate: true,
         store: store,
         legend: {
-            position: 'bottom'
+            position: 'right'
         },
         axes: [{
             type: 'Numeric',
@@ -1048,10 +1048,21 @@ CBIPublisherChartBuilder.prototype.buildPieChart = function(chartDef) {
 	            }
 	        },
 	        label: {
-	            field: 'name',
-	            display: 'rotate',
-	            contrast: true,
-	            font: '18px Arial'
+	        	field: 'name',
+	        	display: 'rotate',
+	        	contrast: true,
+	        	font: '14px',
+	        	renderer: function (label){
+	                // calculate and display percentage on hover
+	                var total = 0;
+	                var val = 0;
+	                store.each(function(rec) {
+	                    total += rec.get('data');
+	                    if (rec.get('name') === label)
+	                    	val = rec.get('data');
+	                });
+	                return (Math.round(val / total * 100) + '%');
+	        	}
 	        }
 	    }]
 	});
