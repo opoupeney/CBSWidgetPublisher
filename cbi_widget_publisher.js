@@ -112,7 +112,7 @@ CBIPublisher.prototype.execute = function() {
 	// build report elements
 	//this.sheetid = this.dataWidget.parameters.sheetId;// for the cloud integration
 	//SheetID's for testing: 100002301, 100002317, 100002322, 100003313, 100003421, 100001732, 100000140, 100000800
-	this.sheetid = "100000140";// for the local testing - default value
+	this.sheetid = "100001420";// for the local testing - default value
 	var wsParams = {sheetid: this.sheetid};
 	this.buildReport(this.SHEET_DATA_QUERY_NAME, this.parseTreeItem, this.prepareTreeReport, wsParams);// TREE
 	
@@ -193,7 +193,7 @@ CBIPublisher.prototype.groupHeaders = function(cbi_publisher_instance, parent, m
 					var index = cbi_publisher_instance.dataRowCount - cbi_publisher_instance.treeLevelsCount + 1 + i;
 				else
 					var index = i + 2;
-				var child = {header:current_lvl[i], align:'right', width:150, dataIndex: cbi_publisher_instance.getColumnName(index + 1)};
+				var child = {header:current_lvl[i], menuDisabled: true, sortable: false, align:'right', width:150, dataIndex: cbi_publisher_instance.getColumnName(index + 1)};
 				cbi_publisher_instance.treeFields.push({ name: cbi_publisher_instance.getColumnName(index + 1) });
 			}
 			else{
@@ -212,7 +212,7 @@ CBIPublisher.prototype.groupHeaders = function(cbi_publisher_instance, parent, m
 					var index = cbi_publisher_instance.dataRowCount - cbi_publisher_instance.treeLevelsCount + 1 + j;
 				else
 					var index = j + 2;
-				var child = {header:current_lvl[j], align:'right', width:150, dataIndex: cbi_publisher_instance.getColumnName(index + 1) };
+				var child = {header:current_lvl[j], menuDisabled: true, sortable: false, align:'right', width:150, dataIndex: cbi_publisher_instance.getColumnName(index + 1) };
 				cbi_publisher_instance.treeFields.push({ name: cbi_publisher_instance.getColumnName(index + 1) });
 			}
 			else{
@@ -276,15 +276,21 @@ CBIPublisher.prototype.parseTreeItem = function(item, index, cbi_publisher_insta
 		//Invoking the method to group headers. Adding a first column for description.
 		cbi_publisher_instance.groupHeaders(cbi_publisher_instance, cbi_publisher_instance.treeColumns, multipliers, -1, header_lvls, 0, 0);
 		for(var m = 0; m < cbi_publisher_instance.difference - 1; m++){
-			cbi_publisher_instance.treeColumns.unshift({header: last_lvl[cbi_publisher_instance.dataRowCount - 1 - m], width: 150, dataIndex: cbi_publisher_instance.getColumnName((cbi_publisher_instance.difference - m + 1))});
+			cbi_publisher_instance.treeColumns.unshift({header: last_lvl[cbi_publisher_instance.dataRowCount - 1 - m], width: 150, menuDisabled: true, sortable: false, dataIndex: cbi_publisher_instance.getColumnName((cbi_publisher_instance.difference - m + 1))});
 			cbi_publisher_instance.treeFields.unshift({name: cbi_publisher_instance.getColumnName((cbi_publisher_instance.difference - m + 1)) });
 		}
-		cbi_publisher_instance.treeColumns.unshift({ header: '', dataIndex: 'c02', width: 200, xtype: 'treecolumn'});
+		
+		//Set the minimum size of the description column (1st column) to 200. Otherwise make it flexible to take up the remaining space.
+		var initialSize = cbi_publisher_instance.calcCompsInitialSize();
+		if(initialSize.treeWidth - (cbi_publisher_instance.treeColumns.length * 150) < 200)
+			cbi_publisher_instance.treeColumns.unshift({ header: '', dataIndex: 'c02', width: 200, xtype: 'treecolumn', hideable: false, sortable: false});
+		else
+			cbi_publisher_instance.treeColumns.unshift({header: '', dataIndex: 'c02', flex: 1, xtype: 'treecolumn', hideable: false, sortable: false});
 		cbi_publisher_instance.treeFields.unshift({name: 'c02'});
 			
 		// hidden columns to store the data for the drill down menu
-		cbi_publisher_instance.treeColumns.push({ header: 'auditCellRow', dataIndex: 'auditCellRow', hidden: true });
-		cbi_publisher_instance.treeColumns.push({ header: 'auditCellDimLevel', dataIndex: 'auditCellDimLevel', hidden: true });
+		cbi_publisher_instance.treeColumns.push({ header: 'auditCellRow', dataIndex: 'auditCellRow', hidden: true, hideable: false });
+		cbi_publisher_instance.treeColumns.push({ header: 'auditCellDimLevel', dataIndex: 'auditCellDimLevel', hidden: true, hideable: false });
 		cbi_publisher_instance.treeFields.push({ name: 'auditCellRow' });
 		cbi_publisher_instance.treeFields.push({ name: 'auditCellDimLevel' });
 		
@@ -453,6 +459,8 @@ CBIPublisher.prototype.parseBarChartItem = function(item, index, cbi_publisher_i
 //Temporary method that i'm currently working on
 CBIPublisher.prototype.parseChartItemTemp = function(item, index, cbi_publisher_instance, wsParams, x_values) {
 	var chartSuffix = cbi_publisher_instance.getChartSuffix( wsParams.graphid );
+	if(chartSuffix == "_100001041")
+		console.log("hey");
 	
 	if(item.colHvCond === "true" || chartSuffix == "_000000000"){
 		if (index === 0) {
@@ -491,6 +499,9 @@ CBIPublisher.prototype.parseChartItemTemp = function(item, index, cbi_publisher_
 				dataSetParentName = item[dataSetParentNameColumn] + " - ";
 			else
 				dataSetParentName = "";
+			//Escaping '.' in the names
+			dataSetParentName = dataSetParentName.replace(/\./g, ' ');
+			dataSetName = dataSetName.replace(/\./g, ' ');
 			
 			for (var i = 0; i < cbi_publisher_instance.chart["series" + chartSuffix].length; i++) {
 				cbi_publisher_instance.chart["series" + chartSuffix][i][dataSetParentName + dataSetName] = parseFloat (item[cbi_publisher_instance.getColumnName((cbi_publisher_instance["treeLevelsCount" + chartSuffix] + 1 + i))]);
@@ -521,6 +532,9 @@ CBIPublisher.prototype.parseChartItemTemp = function(item, index, cbi_publisher_
 				dataSetParentName = item[dataSetParentNameColumn] + " - ";
 			else
 				dataSetParentName = "";
+			//Escaping '.' in the names
+			dataSetParentName = dataSetParentName.replace(/\./g, ' ');
+			dataSetName = dataSetName.replace(/\./g, ' ');
 			
 			cbi_publisher_instance["currentCounter" + chartSuffix]++;
 			cbi_publisher_instance.chart["series" + chartSuffix][cbi_publisher_instance["currentCounter" + chartSuffix]]["name"] = item[xValueColumn];
@@ -559,6 +573,8 @@ CBIPublisher.prototype.prepareTreeReport = function(cbi_publisher_instance) {
 	var initialSize = cbi_publisher_instance.calcCompsInitialSize();// get the components initial size
 	
 	var jsonStoreDef = cbiPublisherTree.getTreeAsJson(cbi_publisher_instance.treeData);// prepare the data for the TreeStore and get them as a JSON object
+	
+//	cbi_publisher_instance.treeColumns[0].locked = "true";
 	
 	if (jsonStoreDef.children !== undefined) {// create a Tree component using the prepared data
 		panelItems.push({
@@ -715,22 +731,7 @@ CBIPublisher.prototype.treeClickAction = function(event, record, columnName, cbi
     	items: items
 	}).showAt(event.xy);
 }
-
-/*
- * Class to build the charts.
- */
-function CBIPublisherChartBuilder(cbi_publisher_instance, wsParams) {
-	this.cbi_publisher_instance = cbi_publisher_instance;
-	if(wsParams != null){
-		this.graphid = wsParams.graphid;
-		this.chartType = cbi_publisher_instance.getChartType( wsParams.graphType );
-	}
-}
-
-CBIPublisher.prototype.parseTreeForChart = function(cbi_publisher_instance) {
 	
-}
-
 //Find out how many x-values this graph has.
 CBIPublisher.prototype.findXValuesNumber = function(cbi_publisher_instance) {
 	var items = cbi_publisher_instance.items;
@@ -756,6 +757,22 @@ CBIPublisher.prototype.findXValuesNumber = function(cbi_publisher_instance) {
 	}
 	
 	return x_values
+}
+
+
+/*
+ * Class to build the charts.
+ */
+function CBIPublisherChartBuilder(cbi_publisher_instance, wsParams) {
+	this.cbi_publisher_instance = cbi_publisher_instance;
+	if(wsParams != null){
+		this.graphid = wsParams.graphid;
+		this.chartType = cbi_publisher_instance.getChartType( wsParams.graphType );
+	}
+}
+
+CBIPublisher.prototype.parseTreeForChart = function(cbi_publisher_instance) {
+	
 }
 
 CBIPublisherChartBuilder.prototype.type = "CBIPublisherChartBuilder";
@@ -870,32 +887,25 @@ CBIPublisherChartBuilder.prototype.buildLineChart = function(chartDef) {
 	
 	var xFields = fields.slice(0, 1);
 	var yFields = fields.slice(1, fields.length);
-	
-//	To remove all the parent labels from the yFields if there are no duplicates
-//	var duplicate = false;
-//	for(var j =0; j<yFields.length; j++){
-//		for(var k =j + 1; k <yFields.length - j; k ++){
-//			if(yFields[j].split(' - ')[1] === yFields[k].split(' - ')[1]){
-//				duplicate = true;
-//			}
-//		}
-//	}
-//	if(duplicate == false){
-//		for(var n = 0; n<yFields.length; n++)
-//			yFields[n] = yFields[n].split(' - ')[1];
-//	}
+	//These are the titles that wil be shown in the legend. (Without the parent label)
+	var titles = new Array();
+	for(var i =0; i<yFields.length; i++){
+		if((yFields[i].split(' - '))[1] != null)
+			titles[i] = (yFields[i].split(' - '))[1];
+		else
+			titles[i] = yFields[i];
+	}
 	
 	var series = new Array();
 	for (var i = 0; i < yFields.length; i++) {
 		var value = yFields[i];
-		series.push({ 'type': 'line', 'xField': xFields[0], 'yField': yFields[i], axis: 'left',
+		series.push({ 'type': 'line', 'xField': xFields[0], 'yField': yFields[i], 'title':titles[i], axis: 'left',
 			highlight:{ size: 7, radius: 7}, markerConfig:{ type: 'circle', size: 4, radius: 4, 'stroke-width': 0},
 			tips: {trackMouse: true, width:140, height: 40, renderer: function(storeItem, item){
 				this.setTitle(storeItem.get('name') + ": " + Ext.util.Format.number(item.value[1], '0,0.00'));
 			} }
 		});
 	}
-//	series.push({'type': 'line', 'xField' :xFields[0], 'yField': 0, axis:'left', showMarkers: true, showInLegend: true});
 
 	var store = Ext.create('Ext.data.JsonStore', {
 		fields: fields,
@@ -947,6 +957,14 @@ CBIPublisherChartBuilder.prototype.buildAreaChart = function(chartDef) {
 	
 	var xFields = fields.slice(0, 1);
 	var yFields = fields.slice(1, fields.length);
+	//These are the titles that wil be shown in the legend. (Without the parent label)
+	var titles = new Array();
+	for(var i =0; i<yFields.length; i++){
+		if((yFields[i].split(' - '))[1] != null)
+			titles[i] = (yFields[i].split(' - '))[1];
+		else
+			titles[i] = yFields[i];
+	}
 	
 	var store = Ext.create('Ext.data.JsonStore', {
 		fields: fields,
@@ -990,10 +1008,11 @@ CBIPublisherChartBuilder.prototype.buildAreaChart = function(chartDef) {
         }],
         series: [{
             type: 'area',
-            highlight: false,
+            highlight: true,
             axis: 'left',
             xField: xFields,
             yField: yFields,
+            title: titles,
             style: {
                 opacity: 0.93
             }
@@ -1013,6 +1032,27 @@ CBIPublisherChartBuilder.prototype.buildPieChart = function(chartDef) {
 		}	
 	}
 	
+	var fields = new Array();
+	for (var propName in chartDef["series" + chartSuffix][0]) {
+		if (chartDef["series" + chartSuffix][0].hasOwnProperty(propName))
+			fields.push(propName);
+	}
+	
+	var xFields = fields.slice(0, 1);
+	var yFields = fields.slice(1, fields.length);
+	//These are the titles that wil be shown in the legend. (Without the parent label)
+	var titles = new Array();
+	for(var i =0; i<yFields.length; i++){
+		if((yFields[i].split(' - '))[1] != null)
+			titles[i] = (yFields[i].split(' - '))[1];
+		else
+			titles[i] = yFields[i];
+	}
+	
+	//Making the pie chart a bit smaller because it was too big
+	var size = this.cbi_publisher_instance.calcCompsInitialSize();
+	var margin = size.tabMaxHeight * 15/100;
+	
 	var store = Ext.create('Ext.data.JsonStore', {
 		fields: ['name', 'data'],
 		data: data
@@ -1022,10 +1062,14 @@ CBIPublisherChartBuilder.prototype.buildPieChart = function(chartDef) {
 	    animate: true,
 	    store: store,
 	    theme: 'Base:gradients',
+	    margin: margin,
         legend:{
         	position: "right"
         },
 	    series: [{
+	    	xField: xFields,
+	    	yFields: yFields,
+	    	title: titles,
 	        type: 'pie',
 	        angleField: 'data',
 	        showInLegend: true,
@@ -1039,7 +1083,12 @@ CBIPublisherChartBuilder.prototype.buildPieChart = function(chartDef) {
 	                store.each(function(rec) {
 	                    total += rec.get('data');
 	                });
-	                this.setTitle(storeItem.get('name') + ': ' + Math.round(storeItem.get('data') / total * 100) + '%');
+	                var name;
+	        		if((storeItem.get('name').split(' - '))[1] != null)
+	        			name = (storeItem.get('name').split(' - '))[1];
+	        		else
+	        			name = storeItem.get('name');
+	                this.setTitle(name + ': ' + Ext.util.Format.number(storeItem.get('data'), '0,0.00'));
 	            }
 	        },
 	        highlight: {
@@ -1099,14 +1148,33 @@ CBIPublisherChartBuilder.prototype.buildVerticalBarChart = function(chartDef) {
 	var chartSuffix = this.cbi_publisher_instance.getChartSuffix(this.graphid);
 	
 	var fields = new Array();
+	var allnegatives = true;
 	for (var propName in chartDef["series" + chartSuffix][0]) {
 		if (chartDef["series" + chartSuffix][0].hasOwnProperty(propName))
 			fields.push(propName);
+		if(chartDef["series" + chartSuffix][0][propName] > 0)
+			allnegatives = false;		
 	}
 	
 	var xFields = fields.slice(0, 1);
 	var yFields = fields.slice(1, fields.length);
-		
+	//These are the titles that wil be shown in the legend. (Without the parent label)
+	var titles = new Array();
+	for(var i =0; i<yFields.length; i++){
+		if((yFields[i].split(' - '))[1] != null)
+			titles[i] = (yFields[i].split(' - '))[1];
+		else
+			titles[i] = yFields[i];
+	}
+	
+	var axes = new Array();
+	if(allnegatives == false)
+		axes = [{ type: 'Numeric', position: 'left', fields: yFields, lable: {renderer: Ext.util.Format.numberRenderer('0,0.00')},
+			grid: true}, {type: 'Category', position: 'bottom', fields: xFields, label: {rotate:{degrees: 315}}}];
+	else
+		axes = [{ type: 'Numeric', position: 'left', fields: yFields, lable: {renderer: Ext.util.Format.numberRenderer('0,0.00')},
+			grid: true, maximum: 0}, {type: 'Category', position: 'bottom', fields: xFields, label: {rotate:{degrees: 315}}}];
+	
 	var store = Ext.create('Ext.data.JsonStore', {
 		fields: fields,
 		data: chartDef["series" + chartSuffix]
@@ -1118,27 +1186,7 @@ CBIPublisherChartBuilder.prototype.buildVerticalBarChart = function(chartDef) {
 	    legend:{
 	    	position: 'right'
 	    },
-	    axes: [
-	        {
-	            type: 'Numeric',
-	            position: 'left',
-	            fields: yFields,
-	            label: {
-	                renderer: Ext.util.Format.numberRenderer('0,0.00')
-	            },
-	            grid: true,
-	        },
-	        {
-	            type: 'Category',
-	            position: 'bottom',
-	            fields: xFields,
-	            label:{
-	            	rotate:{
-	            		degrees: 315
-	            	}
-	            }
-	        }
-	    ],
+	    axes: axes,
 	    series: [
 	        {
 	            type: 'column',
@@ -1162,7 +1210,8 @@ CBIPublisherChartBuilder.prototype.buildVerticalBarChart = function(chartDef) {
 	                color: '#333'
 	            },
 	            xField: xFields,
-	            yField: yFields
+	            yField: yFields,
+	            title: titles
 	        }
 	    ]
 	});
