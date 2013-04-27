@@ -597,7 +597,7 @@ CBSPublisher.prototype.buildNextScreenLink = function(item, row) {
 			
 			var wsParamsArray = null;
 			var iconId = null;
-			if (nextScreenIconDef.indexOf('|') !== -1) {//there is a context menu
+			if (nextScreenIconDef.indexOf('|') !== -1) {// there is a context menu
 				wsParamsArray = cbs_publisher_instance.getNextScreenParamsFromContextMenuDef(nextScreenIconDef).split(';');
 				iconId = cbs_publisher_instance.contextMenuIconId;
 				wsParamsArray[0] = "setting-01";// override the WS image name if there is a context menu
@@ -1034,6 +1034,10 @@ CBSPublisher.prototype.prepareNextScreenData = function(event, iconTitle) {
 	
 	// add current placeholder_info
 	prevPlaceholderInfo.IDs.push(this.wgt_placeholder_id);
+	if (prevPlaceholderInfo.IDs.length === 1)
+		prevPlaceholderInfo.repTitles.push(this.reportName);
+
+	// add future placeholder_info
 	prevPlaceholderInfo.repTitles.push(iconTitle);
 	
 	return {nextScreenIconDef: nextScreenIconDef, prevPlaceholderInfo: prevPlaceholderInfo};
@@ -1763,7 +1767,7 @@ CBSPublisher.prototype.buildBackLinksHTML = function() {
 	}
 	
 	if (this.prev_wgt_placeholder_info.IDs.length > 0)// add a 'current/last' step icon (not clickable)
-		backLinksHTML = backLinksHTML + addBackLink(null, this.reportName, this.prev_wgt_placeholder_info.IDs.length, true);
+		backLinksHTML = backLinksHTML + addBackLink(null, this.prev_wgt_placeholder_info.repTitles[this.prev_wgt_placeholder_info.IDs.length], this.prev_wgt_placeholder_info.IDs.length, true);
 	
 	return backLinksHTML;
 }
