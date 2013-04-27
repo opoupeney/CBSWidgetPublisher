@@ -61,7 +61,7 @@ function closeCbsWaitMessage() {
 
 /*
  * Displays the next report calling WS with dynamically defined parameters.
- * Called only internally, e.g. click on the Grid row - does new publisher, new screen.
+ * Called only internally, e.g. click on the Grid row - builds new publisher instance and dispalys new screen.
  */
 function cbsWidgetPublisherNextScreen(wsParamsAsString, prevPlaceholderInfo, dataWidgetName) {
 	// preparing the WS parameters JSON object
@@ -77,7 +77,6 @@ function cbsWidgetPublisherNextScreen(wsParamsAsString, prevPlaceholderInfo, dat
 	wsParamsJsonObj.sheetname = wsPassedParamsArray[2];
 	wsParamsJsonObj.client = wsPassedParamsArray[3];
 	wsParamsJsonObj.dataWidgetName = dataWidgetName;
-	//var report = wsPassedParamsArray[4];// for the future - to say that this is a publisher report
 	
 	// parameters 'p1'...'p5'
 	for (var i = 5; i < wsPassedParamsArray.length; i++) {
@@ -127,9 +126,10 @@ CBSPublisher.prototype.type="CBSPublisher";
 
 CBSPublisher.prototype.init = function(dataWidget, wgt_placeholder_id, cbsWsSettings) {
 	// constants
-	this.DATA_QUERY_NAME = "qWidgetPublisher";//"qWidgetPublisher2";//"qCbsFreshMoney";
+	this.DATA_QUERY_NAME = "qWidgetPublisher";
+	this.PUBLISHER_DATA_QUERY_NAME = "qWidgetPublisherData";
 	this.CONTEXT_VALUE = {object_name: "CgbContext", object_value: "clientId"};
-	this.IMAGES_URL = "/CBSCloud/res/cb/images/publisher/";//"http://88.191.129.143/RestFixture/images/";
+	this.IMAGES_URL = "/CBSCloud/res/cb/images/publisher/";//"http://localhost:8080/RestFixture/images/";
 	this.GENERATE_WIDGET_EVENT = "CgbGenerateScreen";
 	this.CONTEXT_VALUE_WGT_CALL = {object_name: "CgbCheckBookRequest", object_value: "rowId"};
 	this.SHEET_NAME_PARAMETER = "pkName";
@@ -198,12 +198,12 @@ CBSPublisher.prototype.init = function(dataWidget, wgt_placeholder_id, cbsWsSett
 		this.gridsOrFormsLevel_2.reportName_11, 12, 13... etc.
 	*/
 	
-	this.lastParentIndex = 0;// temporary variable mapping the second and first levels data
+	this.lastParentIndex = 0;// variable mapping the second and first levels data
 	
 	// graphical component ids
 	this.mainPanelId = "cbsPublisherMainPanel_" + this.wgt_placeholder_id;
 	this.mainTitleId = "cbsPublisherMainTitle_" + this.wgt_placeholder_id;
-	this.mainTitlePanelId = "cbsPublisherMainTitlePanel_" + this.wgt_placeholder_id;
+	this.backLinkId = "cbsPublisherBackLink_" + this.wgt_placeholder_id;
 	this.normalFormId = "cbsPublisherNormalForm_" + this.wgt_placeholder_id;
 	this.collapsedFormId = "cbsPublisherCollapsedForm_" + this.wgt_placeholder_id;
 	this.collapsedFormAndChartsPanelId = "cbsPublisherCollapsedFormAndCharts_" + this.wgt_placeholder_id;
@@ -232,19 +232,25 @@ CBSPublisher.prototype.setPrevWgtPlaceholderInfo = function(prevPlaceholderInfo)
 CBSPublisher.prototype.executeFromExternalCall = function() {
 	var cbs_publisher_instance = this;
 	
-	// init the WsSettings using externally passed parameters
-	this.cbsWsSettings.usr = user.properties.cas_attr.loginShell;//'MPELPEL';
+	// PRODUCTION: init the WsSettings (and external report back link) using externally passed parameters
+	this.cbsWsSettings.usr = user.properties.cas_attr.loginShell;
 	this.cbsWsSettings.lng = user.properties.cas_attr.preferredLanguage;
 	this.cbsWsSettings.roles = 'r';
 	this.cbsWsSettings.sheetname = this.dataWidget.parameters[this.SHEET_NAME_PARAMETER];
 	if ( appcontext[this.CONTEXT_VALUE.object_name] )
 		this.cbsWsSettings.client = appcontext[this.CONTEXT_VALUE.object_name][this.CONTEXT_VALUE.object_value];// get the clienId from the context
+	/*
+	// DEBUGGING: hard code WsSettings (and external report back link) for testing
+	this.cbsWsSettings.usr = 'SAUDI';//'MPELPEL';
+	this.cbsWsSettings.lng = 'en';
+	this.cbsWsSettings.roles = 'r';
 	
+	//this.cbsWsSettings.client = null;
+	//this.cbsWsSettings.client = 'CKHABBAZ';
 	//this.cbsWsSettings.client = '021249';
 	//this.cbsWsSettings.client = '741017';
 	//this.cbsWsSettings.client = '723867';
 	
-	// REAL DATA
 	//this.cbsWsSettings.sheetname = 'pk_dp_client.f_get_synthese_client';//0
 	//this.cbsWsSettings.sheetname = 'pk_dp_encours.get_encours_cli';//1 - Good to test and to show
 	//this.cbsWsSettings.sheetname = 'pk_dp_signalitique.F_get_signcli';//2
@@ -262,28 +268,22 @@ CBSPublisher.prototype.executeFromExternalCall = function() {
 	//this.cbsWsSettings.sheetname = 'PK_DP_DEMCHQ_TREE.report';//13 - demande cheque, client must be 741017
 	//this.cbsWsSettings.sheetname = 'pk_dp_bale2.f_get_bale2rm';//14
 	//this.cbsWsSettings.sheetname = 'pk_dp_oper.f_get_operssummaryrm';//15
-	
-	// OLD FAKE REPORTS
-	//this.cbsWsSettings.sheetname = 'PK_DP_QC_CPT2.report';
-	//this.cbsWsSettings.sheetname = 'PK_DP_QC_CPT.report';
-	//this.cbsWsSettings.sheetname = 'pk_dp_qc_supplier4.report';
-	//this.cbsWsSettings.sheetname = 'pk_dp_qc_supplier3.report';
-	//this.cbsWsSettings.sheetname = 'pk_dp_qc_supplier2.report';
-	
+	//this.cbsWsSettings.sheetname = 'pk_dp_encours.get_encours';//16
+	*/
 	// build the report
-	cbs_publisher_instance.buildReport();
+	cbs_publisher_instance.buildReport(true);
 }
 
 CBSPublisher.prototype.executeFromInternalCall = function() {
-	this.buildReport();
+	this.buildReport(false);
 }
 
-CBSPublisher.prototype.buildReport = function() {
+CBSPublisher.prototype.buildReport = function(isCalledExternally) {
 	var cbs_publisher_instance = this;
 	
-	var dq = new DataQuery(this.DATA_QUERY_NAME);
+	var dq = (isCalledExternally === true) ? new DataQuery(this.DATA_QUERY_NAME) : new DataQuery(this.PUBLISHER_DATA_QUERY_NAME);
 	dq.setParameters(this.cbsWsSettings);
-	console.log(this.cbsWsSettings);
+	console.log(dq);
 	
 	dq.execute(null, function(dataSet) {
 		var buffer = dataSet.getData();
@@ -314,7 +314,7 @@ CBSPublisher.prototype.buildReport = function() {
 					parseContinue = false;
 				}
 			}
-			cbs_publisher_instance.gridColumns.push({ header: "", dataIndex: "caction", width: 30 });
+			cbs_publisher_instance.gridColumns.push({ header: "", dataIndex: "caction", width: 34, align: "center" });
 			cbs_publisher_instance.gridFields_level_1.push({ name: "caction" });
 			
 			if (cbs_publisher_instance.cbsWsSettings.newScreen) {
@@ -381,6 +381,9 @@ CBSPublisher.prototype.parseItem = function(item, index) {
 			this.gridColumns.push({ header: "", dataIndex: "rep_icon", width: 30 });
 			this.gridFields_level_1.push({ name: "rep_icon" });
 		}
+		
+		// label for the dimention links drop-down list
+		this.dimensionLinks.label = item.c10;
 	}
 	else if (item.dimName === "CT") {
 		var colIndex = this.gridFields_level_1.length - 1;// minus 1, because we always have 2 columns: row_id & long_descr
@@ -422,8 +425,10 @@ CBSPublisher.prototype.parseItem = function(item, index) {
 				wsParamsJsonObj["p" + (i-5)] = nextP;
 		}
 		
+		if (wsParamsJsonObj.p1 === undefined)
+			wsParamsJsonObj.p1 = wsParamsJsonObj.client;// if there is no c06, parameter p1 must be filled with client id anyway
+		
 		this.dimensionLinks.push({ title: item.c02, period: item.c01, wsParams: wsParamsJsonObj });
-		this.dimensionLinks.label = item.c05;
 	}
 	else if (Ext.Array.contains(this.POSSIBLE_TREE_LEVELS, item.dimName) && item.dimName.length === 1) {
 		var row = new Object();
@@ -549,7 +554,7 @@ CBSPublisher.prototype.parseItem = function(item, index) {
 					doesCactionExist = true;
 			}
 			if (doesCactionExist == false) {
-				this.gridsOrFormsLevel_2["gridColumns_" + tab_idx].push( {header: "", dataIndex: "caction", width: 30} );
+				this.gridsOrFormsLevel_2["gridColumns_" + tab_idx].push( {header: "", dataIndex: "caction", width: 34, align: "center"} );
 				this.gridsOrFormsLevel_2["gridFields_" + tab_idx].push( {name: "caction"} );
 			}
 			
@@ -595,6 +600,7 @@ CBSPublisher.prototype.buildNextScreenLink = function(item, row) {
 			if (nextScreenIconDef.indexOf('|') !== -1) {//there is a context menu
 				wsParamsArray = cbs_publisher_instance.getNextScreenParamsFromContextMenuDef(nextScreenIconDef).split(';');
 				iconId = cbs_publisher_instance.contextMenuIconId;
+				wsParamsArray[0] = "setting-01";// override the WS image name if there is a context menu
 			} else {
 				wsParamsArray = nextScreenIconDef.split(';');
 				iconId = cbs_publisher_instance.nextScreenIconId;
@@ -650,7 +656,7 @@ CBSPublisher.prototype.setReportName = function(name) {
 CBSPublisher.prototype.calcCompsInitialSize = function() {
 	var initialSize = new Object();
 	initialSize.dimensionLinksMaxWidth = (this.maxWidgetWidth / 3 < 200) ? 200 : (this.maxWidgetWidth / 3);
-	initialSize.dimensionLinksLabelMaxWidth = initialSize.dimensionLinksMaxWidth / 3;
+	initialSize.dimensionLinksLabelMaxWidth = (this.dimensionLinks.label) ? this.dimensionLinks.label.length * 8 : initialSize.dimensionLinksMaxWidth / 3;
 	initialSize.treeGridMaxHeight = this.maxWidgetHeight * 6 / 10;
 	initialSize.firstLevelChartsMaxHeight = this.maxWidgetHeight * 2 / 10;
 	initialSize.mainPanelWidth = this.maxWidgetWidth;
@@ -721,6 +727,9 @@ CBSPublisher.prototype.calcCollapsedFormAndChartsSize = function(isChartsVisible
     else if (collapsedForm) {
     	collapsedForm.setWidth(this.maxWidgetWidth);
     }
+    else if (isChartsVisible) {
+    	chartsContainer.setWidth(this.maxWidgetWidth);
+    }
     
     if (collapsedForm && chartsContainer)
     	chartsContainer.setHeight( collapsedForm.getHeight() );
@@ -732,30 +741,18 @@ CBSPublisher.prototype.renderReport = function() {
 	var panel_items = new Array();
 	var initialSize = this.calcCompsInitialSize();// get the components initial size
 	
+	// back link
+	panel_items.push({
+		itemId: this.backLinkId,
+		border: false,
+		html: this.buildBackLinksHTML()
+	});
+	
 	// main title
-	var titlePanelItems = new Array();
-	titlePanelItems.push({
+	panel_items.push({
 		itemId: this.mainTitleId,
 		border: false,
-		html: "<b><p style='font-size:20px'>" + this.reportName + "</p></b></br>",
-		columnWidth: 0.5
-	});
-	
-	// back link
-	titlePanelItems.push({
-		border: false,
-		html: this.buildBackLinksHTML(),
-		columnWidth: 0.5
-	});
-	
-	// add title & back button to the separate panel that will be added to the main panel items
-	panel_items.push({
-		itemId: this.mainTitlePanelId,
-		border: false,
-		layout: {
-    	    type: "column"
-		},
-    	items: titlePanelItems
+		html: "<b><p class='label_grid_title'>" + this.reportName + "</p></b></br>"
 	});
 	
 	// zero level - normal form
@@ -952,9 +949,9 @@ CBSPublisher.prototype.doesGridContainDataColumns = function(gridColumns) {
 }
 
 CBSPublisher.prototype.getHtmlForNormalForm = function() {
-	var html = "<table style='font-size:12px;' width='100%'><tr>";// put data in 1 row
+	var html = "<table style='font-size:12px;'><tr>";// put data in 1 row
 	for (var i = 0; i < this.normalFormLevel_0.length; i++) {
-		html = html + "<td>" + this.normalFormLevel_0[i].label + ": </td><td><b>" + this.normalFormLevel_0[i].data + "</b></td>";
+		html = html + "<td>" + this.normalFormLevel_0[i].label + ":&nbsp;&nbsp;&nbsp;</td><td><b>" + this.normalFormLevel_0[i].data + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</b></td>";
 	}
 	html += "</tr></table>";
 	return html;
@@ -1012,11 +1009,11 @@ CBSPublisher.prototype.optimizeColumnsSize = function(gridColumns) {
 
 CBSPublisher.prototype.gridTreeClickAction = function(event, record) {
 	if (event.target.id === this.nextScreenIconId) {
-		var nextScreenData = this.prepareNextScreenData(event);
+		var nextScreenData = this.prepareNextScreenData(event, event.target.title);
 		cbsWidgetPublisherNextScreen(nextScreenData.nextScreenIconDef, nextScreenData.prevPlaceholderInfo, this.dataWidget.getName());
 	}
 	else if (event.target.id === this.contextMenuIconId) {
-		var nextScreenData = this.prepareNextScreenData(event);
+		var nextScreenData = this.prepareNextScreenData(event, event.target.title);
 		this.showTreeGridContextMenu(nextScreenData.nextScreenIconDef, nextScreenData.prevPlaceholderInfo, event);
 	}
 	else if (event.target.id === this.searchDetailsIconId) {
@@ -1024,7 +1021,7 @@ CBSPublisher.prototype.gridTreeClickAction = function(event, record) {
 	}
 }
 
-CBSPublisher.prototype.prepareNextScreenData = function(event) {
+CBSPublisher.prototype.prepareNextScreenData = function(event, iconTitle) {
 	var nextScreenIconDef = $(event.target).attr('next_screen_def');
 	
 	var prevPlaceholderInfo = new Object();
@@ -1037,7 +1034,7 @@ CBSPublisher.prototype.prepareNextScreenData = function(event) {
 	
 	// add current placeholder_info
 	prevPlaceholderInfo.IDs.push(this.wgt_placeholder_id);
-	prevPlaceholderInfo.repTitles.push(this.reportName);
+	prevPlaceholderInfo.repTitles.push(iconTitle);
 	
 	return {nextScreenIconDef: nextScreenIconDef, prevPlaceholderInfo: prevPlaceholderInfo};
 }
@@ -1064,7 +1061,6 @@ CBSPublisher.prototype.showTreeGridContextMenu = function(nextScreenIconDef, pre
 	    	handler: function() {
 	    		var eventParams = new Array();
 	    		eventParams.push( dqMenuParams.widgetToCall );
-	    		//eventParams.push({ "name": dqMenuParams.widgetToCall });
 	    		
 	    		dfSetContextValue(cbs_publisher_instance.CONTEXT_VALUE_WGT_CALL.object_name, cbs_publisher_instance.CONTEXT_VALUE_WGT_CALL.object_value, dqMenuParams.rowId, function() {
 	    			cbs_publisher_instance.dataWidget.publishEvent(cbs_publisher_instance.GENERATE_WIDGET_EVENT, eventParams);
@@ -1179,10 +1175,10 @@ CBSPublisher.prototype.refreshReport = function() {
 		for (var i = 0; i < this.reportPanel.items.length; i++) {
 			var comp = this.reportPanel.items.getAt(i);
 			var compItemId = comp.getItemId();
-			if (compItemId !== this.mainTitlePanelId && compItemId !== this.periodDimensionsId && compItemId !== this.errorMessageId) {
+			if (compItemId !== this.mainTitleId && compItemId !== this.backLinkId && compItemId !== this.periodDimensionsId && compItemId !== this.errorMessageId) {
 				comp.hide();
 			}
-			else if (compItemId === this.mainTitlePanelId || compItemId === this.periodDimensionsId || compItemId === this.errorMessageId) {
+			else if (compItemId === this.mainTitleId || compItemId !== this.backLinkId || compItemId === this.periodDimensionsId || compItemId === this.errorMessageId) {
 				comp.show();
 			}
 		}
@@ -1498,10 +1494,11 @@ CBSPublisher.prototype.buildPieChart = function(chartDef) {
 		itemId: chartDef.itemId,
 		xtype: 'chart',
 		title: chartDef.series[0].c01,
+		legend: { position: 'right' },
 		height: initialSize.firstLevelChartsMaxHeight,
-		animate: true, 
-	    store: store, theme: 'Base:gradients', shadow: true,
-	    legend: { position: 'right' },
+		animate: true,
+	    store: store,
+	    shadow: true,
 	    series: [{
 	    	type: 'pie', angleField: 'data', showInLegend: true, 
 	        tips: {
@@ -1574,7 +1571,7 @@ CBSPublisher.prototype.buildLineChart = function(chartDef) {
 			data.push(dataItem);
 		}
 		
-		axes.push({ type: 'Numeric', position: 'left', fields: fieldsVertAxe, label: {renderer: Ext.util.Format.numberRenderer('0,0'), font: '10px Arial'}, grid: true, hidden: false });
+		axes.push({ type: 'Numeric', position: 'left', fields: fieldsVertAxe, label: {renderer: Ext.util.Format.numberRenderer('0.00'), font: '10px Arial'}, grid: true, hidden: false });
 		if (chartDef.graphType === 'date')
 			axes.push({ type: 'Time', dateFormat: 'Y M d', position: 'bottom', fields: ['name'], grid: false, hidden: false, label: {font: '10px Arial'} });
 		else if (chartDef.graphType === 'number')
@@ -1589,6 +1586,7 @@ CBSPublisher.prototype.buildLineChart = function(chartDef) {
 			itemId: chartDef.itemId,
 			xtype: 'chart',
 			title: chartDef.label,
+			legend: { position: 'right' },
 			style: 'background:#fff',
 		    height: initialSize.firstLevelChartsMaxHeight,
 		    animate: true,
@@ -1615,6 +1613,7 @@ CBSPublisher.prototype.buildLineChart = function(chartDef) {
 CBSPublisher.prototype.buildBarChart = function(chartDef) {
 	var cbs_publisher_instance = this;
 	var initialSize = this.calcCompsInitialSize();// get the components initial size
+	
 	var data = new Array();
 	for (var i = 0; i < chartDef.series.length; i++) {
 		data.push({ 'name': chartDef.series[i].c01, 'data': parseFloat(chartDef.series[i].c03) });
@@ -1629,6 +1628,7 @@ CBSPublisher.prototype.buildBarChart = function(chartDef) {
 		itemId: chartDef.itemId,
 		xtype: 'chart',
 		title: chartDef.series[0].c02,
+		//legend: { position: 'right' },
 		height: initialSize.firstLevelChartsMaxHeight,
 		animate: true, 
 	    store: store,
@@ -1637,7 +1637,7 @@ CBSPublisher.prototype.buildBarChart = function(chartDef) {
 	        position: 'left',
 	        fields: ['data'],
 	        label: {
-	            renderer: Ext.util.Format.numberRenderer('0.000')
+	            renderer: Ext.util.Format.numberRenderer('0.00')
 	        },
 	        grid: true,
 	        minimum: 0
@@ -1656,21 +1656,33 @@ CBSPublisher.prototype.buildBarChart = function(chartDef) {
 	        	width: 140,
 	        	height: 35,
 	        	renderer: function(storeItem, item) {
-	        		this.setTitle(storeItem.get('name') + ': ' + Ext.util.Format.number(storeItem.get('data'), '0.000'));
+	        		this.setTitle(storeItem.get('name') + ': ' + Ext.util.Format.number(storeItem.get('data'), '0.00'));
 	        	}
 	        },
 	        label: {
 	        	display: 'insideEnd',
 	            field: 'data',
 	            renderer: function(storeItem) {
-	        		return Ext.util.Format.number(storeItem, '0.000');
+	        		return Ext.util.Format.number(storeItem, '0.00');
 	            },
 	            orientation: 'horizontal',
 	            color: '#333',
 	            'text-anchor': 'middle'
 	        },
 	        xField: 'name',
-	        yField: 'data'
+	        yField: 'data',
+	        renderer: function(sprite, record, attr, index, store) {
+	        	var colors = ['rgb(47, 162, 223)',
+			                'rgb(60, 133, 46)',
+			                'rgb(234, 102, 17)',
+			                'rgb(154, 176, 213)',
+			                'rgb(186, 10, 25)',
+			                'rgb(40, 40, 40)'];
+
+	            return Ext.apply(attr, {
+	                fill: colors[index % colors.length]
+	            });
+	        }
 	    }]
 	};
 	
@@ -1693,7 +1705,7 @@ CBSPublisher.prototype.openChartInPopup = function(chart) {
 		"</style>");
 	
 	chart.listeners = undefined;
-	if (chart.legend === undefined && chart.series[0].type !== 'bar') chart.legend = { position: 'bottom' };
+	if (chart.legend === undefined) chart.legend = { position: 'bottom' };
 	
 	Ext.create('Ext.window.Window', {
 	    title: chart.title,
@@ -1725,86 +1737,16 @@ CBSPublisher.prototype.buildErrorMessageBox = function() {
 CBSPublisher.prototype.buildBackLinksHTML = function() {
 	var cbs_publisher_instance = this;
 	var backLinksHTML = '';
-	var wizardCSS = '<style type="text/css">' +
-		'nav {' +
-	    'background: #eee;' +
-	    'border: 1px solid #bbb;' +
-	    '-webkit-border-radius: 2px;' +
-	    '-moz-border-radius: 2px;' +
-	    'border-radius: 2px;' +
-	    'color: #666;' +
-	    'font: 14px/1 "Myriad Pro", Arial, Helvetica, Tahoma, sans-serif;' +
-	    'height: 30px;' +
-	    'text-shadow: 0 1px 1px #fff;' +
-	    'overflow: hidden;' +
-	    'margin: 0px;' +
-		'}' +
-		'nav ul {' +
-		    'float: left;' +
-		'}' +
-		'nav ul li {' +
-		    'float: right;' +
-		    'padding: 8px 0;' +
-		    'text-indent: 37px;' +
-		'}' +
-		'nav ul li:last-child {' +
-		    'margin-left: -15px;' +
-		'}' +
-		'nav ul li a {' +
-		    'background: #ddd;' +
-		    'background-image: -webkit-linear-gradient(left top, #eee 38%, #ddd 61%);' +
-		    'background-image: -moz-linear-gradient(left top, #eee 38%, #ddd 61%);' +
-		    'background-image: -o-linear-gradient(left top, #eee 38%, #ddd 61%);' +
-		    'background-image: -ms-linear-gradient(left top, #eee 38%, #ddd 61%);' +
-		    'background-image: linear-gradient(left top, #eee 38%, #ddd 61%);' +
-		    'border: 1px solid #ccc;' +
-		    'color: #666;' +
-		    'display: block;' +
-		    'line-height: 12px;' +
-		    'margin-top: -60px;' +
-		    'padding: 60px 0;' +
-		    'text-decoration: none;' +
-		    'text-shadow: 0 1px 1px #fff;' +
-		    'width: 132px;' +
-		    '-webkit-transform: rotate(45deg);' +
-		    '-moz-transform: rotate(45deg);' +
-		    '-o-transform: rotate(45deg);' +
-		    '-ms-transform: rotate(45deg);' +
-		    'transform: rotate(45deg);' +
-		'}' +
-		'nav ul li a:hover {' +
-		    'background: #ddd;' +
-		    'background-image: none;' +
-		'}' +
-		'nav ul li a:active, nav ul li a:focus {' +
-		    'outline: 0;' +
-		'}' +
-		'nav ul li a span {' +
-		    'display: block;' +
-		    '-webkit-transform: rotate(-45deg);' +
-		    '-moz-transform: rotate(-45deg);' +
-		    '-o-transform: rotate(-45deg);' +
-		    '-ms-transform: rotate(-45deg);' +
-		    'transform: rotate(-45deg);' +
-		    'overflow:hidden;' +
-		    'white-space:nowrap;' +
-		    'text-overflow:ellipsis;' +
-		'}' +
-		'nav ul li a:active span {' +
-		    'bottom: -1px;' +
-		    'left: 1px;' +
-		    'position: relative;' +
-		'}' +
-	'</style>';
 	
 	var addBackLink = function(placeholderId, reportName, stepNumber, currentStep) {
 		var stepId = Math.uuid(10, 10) + '_' + stepNumber;
 		
 		var stepHTML = '';
 		if (currentStep === true)
-			stepHTML = '<li>' + reportName + '</li>';
+			stepHTML = "<span class=\"breadcrumbText\">" + reportName + "</span>";
 		else
-			stepHTML = '<li><a href="#" id="' + stepId + '"><span>' + reportName + '</span></a></li>';
+			stepHTML = "<span id=\"" + stepId + "\" class=\"breadcrumbText\">" + reportName + "</span>" +
+					"<img src=\"" + cbs_publisher_instance.IMAGES_URL + "breadcrumb.png\" class=\"breadcrumbSeparator\" />";
 		
 		if (currentStep === false) {
 			$("body").on("click", "#" + stepId, function(event) {
@@ -1817,14 +1759,11 @@ CBSPublisher.prototype.buildBackLinksHTML = function() {
 	};
 	
 	for (var idx = 0; idx < this.prev_wgt_placeholder_info.IDs.length; idx++) {// add 'previous' steps icons
-		backLinksHTML = addBackLink(this.prev_wgt_placeholder_info.IDs[idx], this.prev_wgt_placeholder_info.repTitles[idx], idx, false) + backLinksHTML;
+		backLinksHTML = backLinksHTML + addBackLink(this.prev_wgt_placeholder_info.IDs[idx], this.prev_wgt_placeholder_info.repTitles[idx], idx, false);
 	}
 	
-	if (this.prev_wgt_placeholder_info.IDs.length > 0)
-		backLinksHTML = addBackLink(null, this.reportName, this.prev_wgt_placeholder_info.IDs.length, true) + backLinksHTML;// add a 'current/last' step icon (not clickable)
-	
-	if (backLinksHTML !== '')
-		backLinksHTML = '<nav><ul>' + backLinksHTML + '</ul></nav>' + wizardCSS;
+	if (this.prev_wgt_placeholder_info.IDs.length > 0)// add a 'current/last' step icon (not clickable)
+		backLinksHTML = backLinksHTML + addBackLink(null, this.reportName, this.prev_wgt_placeholder_info.IDs.length, true);
 	
 	return backLinksHTML;
 }
