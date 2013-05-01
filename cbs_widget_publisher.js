@@ -249,10 +249,10 @@ CBSPublisher.prototype.executeFromExternalCall = function() {
 	//this.cbsWsSettings.client = 'CKHABBAZ';
 	//this.cbsWsSettings.client = '021249';
 	//this.cbsWsSettings.client = '741017';
-	//this.cbsWsSettings.client = '723867';
+	this.cbsWsSettings.client = '723867';
 	
 	//this.cbsWsSettings.sheetname = 'pk_dp_client.f_get_synthese_client';//0
-	//this.cbsWsSettings.sheetname = 'pk_dp_encours.get_encours_cli';//1 - Good to test and to show
+	this.cbsWsSettings.sheetname = 'pk_dp_encours.get_encours_cli';//1 - Good to test and to show
 	//this.cbsWsSettings.sheetname = 'pk_dp_signalitique.F_get_signcli';//2
 	//this.cbsWsSettings.sheetname = 'pk_dp_freshmoney.f_get_freshcli';//3 - Good to test - test col size
 	//this.cbsWsSettings.sheetname = 'pk_dp_statoper.get_opers_cli';//4 - Bar charts
@@ -1749,7 +1749,7 @@ CBSPublisher.prototype.buildBackLinksHTML = function() {
 		if (currentStep === true)
 			stepHTML = "<span class=\"breadcrumbText\">" + reportName + "</span>";
 		else
-			stepHTML = "<span id=\"" + stepId + "\" class=\"breadcrumbText\">" + reportName + "</span>" +
+			stepHTML = "<span id=\"" + stepId + "\" class=\"breadcrumbText breadcrumbLink\">" + reportName + "</span>" +
 					"<img src=\"" + cbs_publisher_instance.IMAGES_URL + "breadcrumb.png\" class=\"breadcrumbSeparator\" />";
 		
 		if (currentStep === false) {
