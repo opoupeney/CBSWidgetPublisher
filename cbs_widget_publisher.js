@@ -126,7 +126,7 @@ CBSPublisher.prototype.type="CBSPublisher";
 
 CBSPublisher.prototype.init = function(dataWidget, wgt_placeholder_id, cbsWsSettings) {
 	// constants
-	this.DATA_QUERY_NAME = "qWidgetPublisher";
+	this.DATA_QUERY_NAME = "qWidgetPublisher2";
 	this.PUBLISHER_DATA_QUERY_NAME = "qWidgetPublisherData";
 	this.CONTEXT_VALUE = {object_name: "CgbContext", object_value: "clientId"};
 	this.IMAGES_URL = "/CBSCloud/res/cb/images/publisher/";//"http://localhost:8080/RestFixture/images/";
@@ -233,13 +233,13 @@ CBSPublisher.prototype.executeFromExternalCall = function() {
 	var cbs_publisher_instance = this;
 	
 	// PRODUCTION: init the WsSettings (and external report back link) using externally passed parameters
-	this.cbsWsSettings.usr = user.properties.cas_attr.loginShell;
-	this.cbsWsSettings.lng = user.properties.cas_attr.preferredLanguage;
-	this.cbsWsSettings.roles = 'r';
-	this.cbsWsSettings.sheetname = this.dataWidget.parameters[this.SHEET_NAME_PARAMETER];
-	if ( appcontext[this.CONTEXT_VALUE.object_name] )
-		this.cbsWsSettings.client = appcontext[this.CONTEXT_VALUE.object_name][this.CONTEXT_VALUE.object_value];// get the clienId from the context
-	/*
+//	this.cbsWsSettings.usr = user.properties.cas_attr.loginShell;
+//	this.cbsWsSettings.lng = user.properties.cas_attr.preferredLanguage;
+//	this.cbsWsSettings.roles = 'r';
+//	this.cbsWsSettings.sheetname = this.dataWidget.parameters[this.SHEET_NAME_PARAMETER];
+//	if ( appcontext[this.CONTEXT_VALUE.object_name] )
+//		this.cbsWsSettings.client = appcontext[this.CONTEXT_VALUE.object_name][this.CONTEXT_VALUE.object_value];// get the clienId from the context
+	
 	// DEBUGGING: hard code WsSettings (and external report back link) for testing
 	this.cbsWsSettings.usr = 'SAUDI';//'MPELPEL';
 	this.cbsWsSettings.lng = 'en';
@@ -247,19 +247,19 @@ CBSPublisher.prototype.executeFromExternalCall = function() {
 	
 	//this.cbsWsSettings.client = null;
 	//this.cbsWsSettings.client = 'CKHABBAZ';
-	//this.cbsWsSettings.client = '021249';
+	this.cbsWsSettings.client = '021249';
 	//this.cbsWsSettings.client = '741017';
-	this.cbsWsSettings.client = '723867';
+//	this.cbsWsSettings.client = '723867';
 	
 	//this.cbsWsSettings.sheetname = 'pk_dp_client.f_get_synthese_client';//0
-	this.cbsWsSettings.sheetname = 'pk_dp_encours.get_encours_cli';//1 - Good to test and to show
+//	this.cbsWsSettings.sheetname = 'pk_dp_encours.get_encours_cli';//1 - Good to test and to show
 	//this.cbsWsSettings.sheetname = 'pk_dp_signalitique.F_get_signcli';//2
 	//this.cbsWsSettings.sheetname = 'pk_dp_freshmoney.f_get_freshcli';//3 - Good to test - test col size
-	//this.cbsWsSettings.sheetname = 'pk_dp_statoper.get_opers_cli';//4 - Bar charts
+	this.cbsWsSettings.sheetname = 'pk_dp_statoper.get_opers_cli';//4 - Bar charts
 	//this.cbsWsSettings.sheetname = 'pk_dp_dastat.f_get_client';//5 - Good to show
 	//this.cbsWsSettings.sheetname = 'pk_dp_depass.get_depass_cli';//6 - optional
 	//this.cbsWsSettings.sheetname = 'pk_dp_impas.f_get_impascli';//7
-	//this.cbsWsSettings.sheetname = 'pk_dp_bale2.f_get_client';//8 - test col size
+//	this.cbsWsSettings.sheetname = 'pk_dp_bale2.f_get_client';//8 - test col size
 	//this.cbsWsSettings.sheetname = 'pk_dp_oper.get_clioper';//9
 	//this.cbsWsSettings.sheetname = 'pk_dp_dpoper.get_clioper_new';//10
 	//this.cbsWsSettings.sheetname = 'pk_dp_roles.F_get_roles';// ERROR - FUNCTIONAL
@@ -269,7 +269,8 @@ CBSPublisher.prototype.executeFromExternalCall = function() {
 	//this.cbsWsSettings.sheetname = 'pk_dp_bale2.f_get_bale2rm';//14
 	//this.cbsWsSettings.sheetname = 'pk_dp_oper.f_get_operssummaryrm';//15
 	//this.cbsWsSettings.sheetname = 'pk_dp_encours.get_encours';//16
-	*/
+//	this.cbsWsSettings.sheetname = 'pk_dp_depass.f_get_depassrm';
+	
 	// build the report
 	cbs_publisher_instance.buildReport(true);
 }
@@ -497,8 +498,9 @@ CBSPublisher.prototype.parseItem = function(item, index) {
 		else {
 			// because new WS format does not include the hints, system has to guess if it's a Date or Numbers!
 			// so, the system suppose that Date is ALWAYS in the format: DD.MM.YYYY!
-			var tempDate = Ext.Date.parse(item.c01, "d.m.Y");
-			if (tempDate)
+			var tempDate1 = Ext.Date.parse(item.c01, "d.m.Y");
+			var tempDate2 = Ext.Date.parse(item.c01, "d-M-y");
+			if (tempDate1 || tempDate2)
 				currentChart.graphType = "date";
 			else
 				currentChart.graphType = "number";
@@ -1563,10 +1565,13 @@ CBSPublisher.prototype.buildLineChart = function(chartDef) {
 				fieldsVertAxe.push( chartDef.series[i].c02 );
 				
 				series.push({ type: 'line', axis: 'left', xField: 'name', yField: chartDef.series[i].c02, 
-					highlight: {size: 7, radius: 7}, markerConfig: {type: 'cross', size: 4, radius: 4, 'stroke-width': 0} });
+					highlight: {size: 3, radius: 3}, markerConfig: {type: 'cross', size: 4, radius: 4, 'stroke-width': 0}, 
+					tips: {trackMouse: true, width:140, height: 40, renderer: function(storeItem, item){
+						this.setTitle(Ext.Date.format(new Date(storeItem.get('name')), 'd-M-Y') + ": " + Ext.util.Format.number(item.value[1], '0,0.00'));}} });
 			}
 			
 			var dataItem = new Object();
+			
 			if (chartDef.graphType === 'date')
 				dataItem.name = new Date(chartDef.series[i].c01.replace( /(\d{2}).(\d{2}).(\d{4})/, "$2/$1/$3")).getTime();
 			else if (chartDef.graphType === 'number')
@@ -1575,11 +1580,11 @@ CBSPublisher.prototype.buildLineChart = function(chartDef) {
 			data.push(dataItem);
 		}
 		
-		axes.push({ type: 'Numeric', position: 'left', fields: fieldsVertAxe, label: {renderer: Ext.util.Format.numberRenderer('0.00'), font: '10px Arial'}, grid: true, hidden: false });
+		axes.push({ type: 'Numeric', position: 'left', fields: fieldsVertAxe, label: {renderer: Ext.util.Format.numberRenderer('0,0.00'), font: '10px Arial'}, grid: true, hidden: false });
 		if (chartDef.graphType === 'date')
-			axes.push({ type: 'Time', dateFormat: 'Y M d', position: 'bottom', fields: ['name'], grid: false, hidden: false, label: {font: '10px Arial'} });
+			axes.push({ type: 'Time', dateFormat: 'd-M-Y', position: 'bottom', fields: ['name'], grid: false, hidden: false, label: {font: '10px Arial'} });
 		else if (chartDef.graphType === 'number')
-			axes.push({ type: 'Numeric', position: 'bottom', fields: ['name'], grid: true, hidden: false, label: {font: '10px Arial'} });
+			axes.push({ type: 'Number', position: 'bottom', fields: ['name'], grid: true, hidden: false, label: {font: '10px Arial'} });
 		
 		var store = Ext.create('Ext.data.JsonStore', {
 			fields: fields,
@@ -1618,13 +1623,32 @@ CBSPublisher.prototype.buildBarChart = function(chartDef) {
 	var cbs_publisher_instance = this;
 	var initialSize = this.calcCompsInitialSize();// get the components initial size
 	
+	var count=1;
+	var dataName = chartDef.series[0].c02, fields = ['name', dataName];;
+	
+	for (var i = 1; i<chartDef.series.length-1; i++){
+		if(dataName === chartDef.series[i].c02){
+			i=chartDef.series.length-1;}
+		else{
+			fields.push(chartDef.series[i].c02)
+			count++;}
+	}
+	
+	var xFields = fields.slice(0, 1);
+	var yFields = fields.slice(1, fields.length);
+	
 	var data = new Array();
 	for (var i = 0; i < chartDef.series.length; i++) {
-		data.push({ 'name': chartDef.series[i].c01, 'data': parseFloat(chartDef.series[i].c03) });
+		if(i%count == 0)
+			var dataItem = new Object();
+		dataItem['name'] = chartDef.series[i].c01;
+		dataItem[chartDef.series[i].c02] = parseFloat(chartDef.series[i].c03);
+		if(i%count == (count - 1))
+			data.push(dataItem);
 	}
 	
 	var store = Ext.create('Ext.data.JsonStore', {
-	    fields: ['name', 'data'],
+	    fields: fields,
 	    data: data
 	});
 	
@@ -1632,23 +1656,23 @@ CBSPublisher.prototype.buildBarChart = function(chartDef) {
 		itemId: chartDef.itemId,
 		xtype: 'chart',
 		title: chartDef.series[0].c02,
-		//legend: { position: 'right' },
+		legend: { position: 'right' },
 		height: initialSize.firstLevelChartsMaxHeight,
 		animate: true, 
 	    store: store,
 	    axes: [{
 	        type: 'Numeric',
 	        position: 'left',
-	        fields: ['data'],
+	        fields: yFields,
 	        label: {
-	            renderer: Ext.util.Format.numberRenderer('0.00')
+	            renderer: Ext.util.Format.numberRenderer('0,0.00')
 	        },
 	        grid: true,
 	        minimum: 0
 	    }, {
 	        type: 'Category',
 	        position: 'bottom',
-	        fields: ['name']
+	        fields: xFields
 	    }],
 	    series: [{
 	        type: 'bar',
@@ -1660,33 +1684,33 @@ CBSPublisher.prototype.buildBarChart = function(chartDef) {
 	        	width: 140,
 	        	height: 35,
 	        	renderer: function(storeItem, item) {
-	        		this.setTitle(storeItem.get('name') + ': ' + Ext.util.Format.number(storeItem.get('data'), '0.00'));
+	        		this.setTitle(storeItem.get('name') + ': ' + Ext.util.Format.number(item.value[1], '0,0.00'));
 	        	}
 	        },
-	        label: {
-	        	display: 'insideEnd',
-	            field: 'data',
-	            renderer: function(storeItem) {
-	        		return Ext.util.Format.number(storeItem, '0.00');
-	            },
-	            orientation: 'horizontal',
-	            color: '#333',
-	            'text-anchor': 'middle'
-	        },
-	        xField: 'name',
-	        yField: 'data',
-	        renderer: function(sprite, record, attr, index, store) {
-	        	var colors = ['rgb(47, 162, 223)',
-			                'rgb(60, 133, 46)',
-			                'rgb(234, 102, 17)',
-			                'rgb(154, 176, 213)',
-			                'rgb(186, 10, 25)',
-			                'rgb(40, 40, 40)'];
-
-	            return Ext.apply(attr, {
-	                fill: colors[index % colors.length]
-	            });
-	        }
+//	        label: {
+//	        	display: 'insideEnd',
+//	            field: yFields,
+//	            renderer: function(storeItem) {
+//	        		return Ext.util.Format.number(storeItem, '0,0.00');
+//	            },
+//	            orientation: 'horizontal',
+//	            color: '#333',
+//	            'text-anchor': 'middle'
+//	        },
+	        xField: xFields,
+	        yField: yFields
+//	        renderer: function(sprite, record, attr, index, store) {
+//	        	var colors = ['rgb(47, 162, 223)',
+//			                'rgb(60, 133, 46)',
+//			                'rgb(234, 102, 17)',
+//			                'rgb(154, 176, 213)',
+//			                'rgb(186, 10, 25)',
+//			                'rgb(40, 40, 40)'];
+//
+//	            return Ext.apply(attr, {
+//	                fill: colors[index % colors.length]
+//	            });
+//	        }
 	    }]
 	};
 	
