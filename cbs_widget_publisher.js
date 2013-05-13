@@ -254,19 +254,19 @@ CBSPublisher.prototype.executeFromExternalCall = function() {
 //	this.cbsWsSettings.client = '723867';
 
 	//this.cbsWsSettings.sheetname = 'pk_dp_client.f_get_synthese_client';//0
-//	this.cbsWsSettings.sheetname = 'pk_dp_encours.get_encours_cli';//1 - Good to test and to show
+	this.cbsWsSettings.sheetname = 'pk_dp_encours.get_encours_cli';//1 - Good to test and to show
 	//this.cbsWsSettings.sheetname = 'pk_dp_signalitique.F_get_signcli';//2
 //	this.cbsWsSettings.sheetname = 'pk_dp_freshmoney.f_get_freshcli';//3 - Good to test - test col size
 //	this.cbsWsSettings.sheetname = 'pk_dp_statoper.get_opers_cli';//4 - Bar charts
 //	this.cbsWsSettings.sheetname = 'pk_dp_dastat.f_get_client';//5 - Good to show
 //	this.cbsWsSettings.sheetname = 'pk_dp_depass.get_depass_cli';//6 - optional
 //	this.cbsWsSettings.sheetname = 'pk_dp_impas.f_get_impascli';//7
-	this.cbsWsSettings.sheetname = 'pk_dp_bale2.f_get_client';//8 - test col size
+//	this.cbsWsSettings.sheetname = 'pk_dp_bale2.f_get_client';//8 - test col size
 	//this.cbsWsSettings.sheetname = 'pk_dp_oper.get_clioper';//9
 	//this.cbsWsSettings.sheetname = 'pk_dp_dpoper.get_clioper_new';//10
 	//this.cbsWsSettings.sheetname = 'pk_dp_roles.F_get_roles';// ERROR - FUNCTIONAL
 	//this.cbsWsSettings.sheetname = 'pk_dp_groupes.F_get_groupes';//11
-	//this.cbsWsSettings.sheetname = 'pk_dp_freshmoney.f_get_freshrm';//12
+//	this.cbsWsSettings.sheetname = 'pk_dp_freshmoney.f_get_freshrm';//12
 	//this.cbsWsSettings.sheetname = 'PK_DP_DEMCHQ_TREE.report';//13 - demande cheque, client must be 741017
 	//this.cbsWsSettings.sheetname = 'pk_dp_bale2.f_get_bale2rm';//14
 	//this.cbsWsSettings.sheetname = 'pk_dp_oper.f_get_operssummaryrm';//15
@@ -672,13 +672,17 @@ CBSPublisher.prototype.calcCompsInitialSize = function() {
 }
 
 CBSPublisher.prototype.calcCompsSize = function() {
+	console.log("calcCompsSize");
 	var formsHeight = 0;
 	if (this.reportPanel.getComponent(this.normalFormId))
 		formsHeight += this.reportPanel.getComponent(this.normalFormId).getHeight();
 	
 	formsHeight = formsHeight * 4;//TODO: this is a temp solution, in reality, the fieldset (collapsedForm) height must be taken into account but it behaves strangely
 	
-	var mainTreeGrid = (this.isItTree) ? this.reportPanel.getComponent(this.mainTreeId) : this.reportPanel.getComponent(this.mainGridId);
+//	var mainTreeGrid = (this.isItTree) ? this.reportPanel.getComponent(this.gridTreeAndChartsId).getComponent(this.mainTreeId) : 
+//		this.reportPanel.getComponent(this.gridTreeAndChartsId).getComponent(this.mainGridId);
+	var mainTreeGrid = (this.isItTree) ? this.reportPanel.getComponent(this.mainTreeId) : 
+		this.reportPanel.getComponent(this.mainGridId);
 	var secondLevelTabs = this.reportPanel.getComponent(this.secondLevelTabsId);
 	var collapsedFormPanel = this.reportPanel.getComponent(this.collapsedFormPanelId);
 	var collapsedForm = null;
@@ -940,6 +944,9 @@ CBSPublisher.prototype.renderReport = function() {
 	panel_items.push({
 		itemId: this.gridTreeAndChartsId,
 		border: false,
+//		xtype: "fieldset",
+//		collapsible: true,
+//		collapsed: false,
 		layout: {
     	    type: "hbox"
 		},
@@ -1078,7 +1085,12 @@ CBSPublisher.prototype.gridTreeClickAction = function(event, record) {
 		this.showTreeGridContextMenu(nextScreenData.nextScreenIconDef, nextScreenData.prevPlaceholderInfo, event);
 	}
 	else if (event.target.id === this.searchDetailsIconId) {
-		this.renderSecondLevelComps( record.get('row_id') );// second level - tabs
+		/*if the second tab is not already there, then call the function again.
+		because there is a bug where the loop needs to be clicked twice for the data to appear the first time*/
+		if(this.reportPanel.getComponent(this.secondLevelTabsId) == null)
+			this.renderSecondLevelComps( record.get('row_id'), true );
+		
+		this.renderSecondLevelComps( record.get('row_id'), false );// second level - tabs
 	}
 }
 
@@ -1220,6 +1232,7 @@ CBSPublisher.prototype.executeDataQueryContextMenuItem = function(dataQueryName,
 };
 
 CBSPublisher.prototype.refreshReport = function() {
+	console.log("refreshReport");
 	// remove tabs
 	this.reportPanel.remove( this.reportPanel.getComponent(this.secondLevelTabsId) );
 	
@@ -1322,7 +1335,7 @@ CBSPublisher.prototype.refreshReport = function() {
 /*
  * Create Tab with second level nested grids. Must be invoked by clicking on the row in the first level grid.
  */
-CBSPublisher.prototype.renderSecondLevelComps = function(parentIndex) {
+CBSPublisher.prototype.renderSecondLevelComps = function(parentIndex, onlyTabs) {
 	// build tabs of the second level
 	for (var i = 0; i < this.POSSIBLE_TREE_LEVELS.length; i++) {
 		if (this.POSSIBLE_TREE_LEVELS[i] !== "0" && this.buildSecondLevelTabs(this.POSSIBLE_TREE_LEVELS[i], parentIndex))
@@ -1330,12 +1343,14 @@ CBSPublisher.prototype.renderSecondLevelComps = function(parentIndex) {
 	}
 	
 	// build charts of the second level
-	this.buildSecondLevelCharts(2, parentIndex);
+	if(onlyTabs != true)
+		this.buildSecondLevelCharts(2, parentIndex);
 	
 	this.calcCompsSize();// adjust the components size
 	
 	// scroll to selected row in the first level grid
-	var mainTreeGrid = (this.isItTree) ? this.reportPanel.getComponent(this.mainTreeId) : this.reportPanel.getComponent(this.mainGridId);
+	var mainTreeGrid = (this.isItTree) ? this.reportPanel.getComponent(this.gridTreeAndChartsId).getComponent(this.mainTreeId) : 
+		this.reportPanel.getComponent(this.gridTreeAndChartsId).getComponent(this.mainGridId);
 	if (mainTreeGrid) {
 		var lastSelectedRow = mainTreeGrid.getSelectionModel().getLastSelected();
 		if (lastSelectedRow) {
@@ -1481,6 +1496,8 @@ CBSPublisher.prototype.buildSecondLevelCharts = function(levelIndex, parentIndex
 	var charts = this.buildCharts(levelIndex, parentIndex);
 	if (charts.length > 0) {
 		var chartsContainer = this.reportPanel.getComponent(this.gridTreeAndChartsId).getComponent(this.chartsPanelId);
+		var mainTreeGrid = (this.isItTree) ? this.reportPanel.getComponent(this.gridTreeAndChartsId).getComponent(this.mainTreeId) : 
+			this.reportPanel.getComponent(this.gridTreeAndChartsId).getComponent(this.mainGridId);
 		
 		// first, remove the old second level charts
 		var chartsNumber = chartsContainer.items.length;
@@ -1498,10 +1515,13 @@ CBSPublisher.prototype.buildSecondLevelCharts = function(levelIndex, parentIndex
 			chartsContainer.setActiveTab( chartsContainer.getComponent(chartLevel_2.itemId) );
 		}
 		
-//		if (chartsContainer.isHidden()) {
+		if (chartsContainer.isHidden()) {
+			console.log("OK");
+			mainTreeGrid.setWidth(this.maxWidgetWidth * 65/100);
+			mainTreeGrid.setHeight(this.maxWidgetHeight * 6/10);
 //			this.calcCollapsedFormAndChartsSize(true);
-//			chartsContainer.show();
-//		}
+			chartsContainer.show();
+		}
 	}
 }
 
@@ -1923,6 +1943,8 @@ CBSPublisher.prototype.buildBackLinksHTML = function() {
 			$("body").on("click", "#" + stepId, function(event) {
 				$("#" + cbs_publisher_instance.wgt_placeholder_id).hide("slide", { direction: "right" }, 300, function() {
 					$("#" + placeholderId).show("slide", {}, 300, function() {});
+					
+					$("#" + cbs_publisher_instance.wgt_placeholder_id).remove(); //To avoid "wait" window bug
 				});
 			});
 		}
