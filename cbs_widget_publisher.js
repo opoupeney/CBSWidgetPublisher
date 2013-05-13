@@ -31,7 +31,11 @@ function cbsWidgetPublisher(dataWidget, cbs_publisher_instance, cbsWsSettings) {
 	if (cbs_publisher_instance == undefined || cbs_publisher_instance == null) {// called externally
 		dataWidget.clearContent();
 		var wgt_placeholder_id = Math.uuid( 10,10 );
-		dataWidget.addContent("<div id=\"" + wgt_placeholder_id + "\" style=\"width:100%;height:auto;\"></div>");
+		
+		if ($(".cbsPublisherToDelete")[0]){
+			$('.cbsPublisherToDelete').remove();
+		}
+		dataWidget.addContent("<div id=\"" + wgt_placeholder_id + "\" class = \"cbsPublisherToDelete\" style=\"width:100%;height:auto;\"></div>");
 		
 		var cbsPublisher = new CBSPublisher(dataWidget, wgt_placeholder_id, new CbsWsSettings());
 		cbsPublisher.executeFromExternalCall();
@@ -49,7 +53,7 @@ function showCbsWaitMessage() {
 	PLEASE_WAIT_CBS_WINDOW = Ext.MessageBox.show({ 
 		msg: 'Loading the requested information...', 
 		progressText: 'Retrieving data...', 
-		width:300, 
+		width:300,
 		wait:true, 
 		waitConfig: {interval:1000}
 	});
@@ -254,7 +258,7 @@ CBSPublisher.prototype.executeFromExternalCall = function() {
 //	this.cbsWsSettings.client = '723867';
 
 	//this.cbsWsSettings.sheetname = 'pk_dp_client.f_get_synthese_client';//0
-	this.cbsWsSettings.sheetname = 'pk_dp_encours.get_encours_cli';//1 - Good to test and to show
+//	this.cbsWsSettings.sheetname = 'pk_dp_encours.get_encours_cli';//1 - Good to test and to show
 	//this.cbsWsSettings.sheetname = 'pk_dp_signalitique.F_get_signcli';//2
 //	this.cbsWsSettings.sheetname = 'pk_dp_freshmoney.f_get_freshcli';//3 - Good to test - test col size
 //	this.cbsWsSettings.sheetname = 'pk_dp_statoper.get_opers_cli';//4 - Bar charts
@@ -266,7 +270,7 @@ CBSPublisher.prototype.executeFromExternalCall = function() {
 	//this.cbsWsSettings.sheetname = 'pk_dp_dpoper.get_clioper_new';//10
 	//this.cbsWsSettings.sheetname = 'pk_dp_roles.F_get_roles';// ERROR - FUNCTIONAL
 	//this.cbsWsSettings.sheetname = 'pk_dp_groupes.F_get_groupes';//11
-//	this.cbsWsSettings.sheetname = 'pk_dp_freshmoney.f_get_freshrm';//12
+	this.cbsWsSettings.sheetname = 'pk_dp_freshmoney.f_get_freshrm';//12
 	//this.cbsWsSettings.sheetname = 'PK_DP_DEMCHQ_TREE.report';//13 - demande cheque, client must be 741017
 	//this.cbsWsSettings.sheetname = 'pk_dp_bale2.f_get_bale2rm';//14
 	//this.cbsWsSettings.sheetname = 'pk_dp_oper.f_get_operssummaryrm';//15
