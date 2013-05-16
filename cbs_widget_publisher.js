@@ -2017,10 +2017,13 @@ CBSPublisher.prototype.buildBackLinksHTML = function() {
 		
 		var stepHTML = '';
 		if (currentStep === true)
-			stepHTML = "<span class=\"breadcrumbText current\">" + reportName + "</span>";
-		else
-			stepHTML = "<span id=\"" + stepId + "\" class=\"breadcrumbText breadcrumbLink\">" + reportName + "</span>";
+			stepHTML = "<span class=\"cbs_publisher_breadcrumbText cbs_publisher_current\">" + reportName + "</span>";
+		else if(stepNumber == 0){
+			stepHTML = "<span id=\"" + stepId + "\" class=\"cbs_publisher_breadcrumbText cbs_publisher_breadcrumbLink cbs_publisher_first\">" + reportName + "</span>";
 //					"<img src=\"" + cbs_publisher_instance.IMAGES_URL + "breadcrumb.png\" class=\"breadcrumbSeparator\" />";
+		}
+		else
+			stepHTML = "<span id=\"" + stepId + "\" class=\"cbs_publisher_breadcrumbText cbs_publisher_breadcrumbLink\">" + reportName + "</span>";
 		
 		if (currentStep === false) {
 			$("body").on("click", "#" + stepId, function(event) {
@@ -2047,27 +2050,28 @@ CBSPublisher.prototype.buildBackLinksHTML = function() {
 CBSPublisher.prototype.addBreadCrumbCSS = function() {
 	var css = document.createElement("style");
 	css.type = "text/css";
-	css.innerHTML += ".breadcrumbText { float: left; margin: 0 .5em 0 1em;}";
-	css.innerHTML += ".breadcrumbText {background-image: -webkit-linear-gradient(left, #7394B5 0%, #9CB5CE 100%);" +
+	css.innerHTML += ".cbs_publisher_breadcrumbText { float: left; margin: 0 .5em 0 1em;}";
+	css.innerHTML += ".cbs_publisher_breadcrumbText {background-image: -webkit-linear-gradient(left, #7394B5 0%, #9CB5CE 100%);" +
 			" float: left; padding: 0 .5em 0 .5em;" +
 			" text-decoration: none; color: white; text-shadow: 0 1px 0 rgba(255,255,255,.5);" +
 			"position: relative;}";
-	css.innerHTML += ".breadcrumbText:hover {color: black}";
-	css.innerHTML += ".breadcrumbText::before {content:''; position: absolute;" +
+	css.innerHTML += ".cbs_publisher_breadcrumbText:hover {color: black}";
+	css.innerHTML += ".cbs_publisher_breadcrumbText::before {content:''; position: absolute;" +
 			"top: 50%; margin-top: -1.5em; border-width: 1.5em 0 1.5em 1em;" +
 			"border-style: solid; border-color: #7394B5 #7394B5 #7394B5 transparent; left: -1em}";
 //	css.innerHTML += ".breadcrumbText:hover::before {border-color: #d78932 #d78932 #d78932 transparent;}";
-	css.innerHTML += ".breadcrumbText::after {content: ''; position: absolute; top: 50%;" +
+	css.innerHTML += ".cbs_publisher_breadcrumbText::after {content: ''; position: absolute; top: 50%;" +
 			"margin-top: -1.5em; border-top: 1.5em solid transparent; " +
 			"border-bottom: 1.5em solid transparent; border-left: 1em solid #9CB5CE; right: -1em;}";
 //	css.innerHTML += ".breadcrumbText:hover::after{border-left-color: #d78932;}";
-	css.innerHTML += ".current::after{content: normal;}";
-	css.innerHTML += ".current::before{border-color: #d78932 #d78932 #d78932 transparent;}";
-	css.innerHTML += ".current{border-top-right-radius: 2px; border-bottom-right-radius: 2px;" +
+	css.innerHTML += ".cbs_publisher_current::after{content: normal;}";
+	css.innerHTML += ".cbs_publisher_current::before{border-color: #d78932 #d78932 #d78932 transparent;}";
+	css.innerHTML += ".cbs_publisher_current{border-top-right-radius: 2px; border-bottom-right-radius: 2px;" +
 			"background: #d78932 !important;}";
-	css.innerHTML += ".current:hover {color: white !important; cursor: default}";
+	css.innerHTML += ".cbs_publisher_current:hover {color: white !important; cursor: default}";
 //	css.innerHTML += ".current, .current:hover{font-weight: bold; background: none; color: #444;}";
 //	css.innerHTML += ".current::after, .current::before{content: normal;}";
+	css.innerHTML += ".cbs_publisher_first::before{content:normal;border-top-right-radius: 2px; border-bottom-right-radius: 2px;}";
 	document.body.appendChild(css);
 }
 
