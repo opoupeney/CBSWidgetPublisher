@@ -259,7 +259,7 @@ CBSPublisher.prototype.executeFromExternalCall = function() {
 
 	//this.cbsWsSettings.sheetname = 'pk_dp_client.f_get_synthese_client';//0
 //	this.cbsWsSettings.sheetname = 'pk_dp_encours.get_encours_cli';//1 - Good to test and to show
-	//this.cbsWsSettings.sheetname = 'pk_dp_signalitique.F_get_signcli';//2
+//	this.cbsWsSettings.sheetname = 'pk_dp_signalitique.F_get_signcli';//2
 //	this.cbsWsSettings.sheetname = 'pk_dp_freshmoney.f_get_freshcli';//3 - Good to test - test col size
 //	this.cbsWsSettings.sheetname = 'pk_dp_statoper.get_opers_cli';//4 - Bar charts
 //	this.cbsWsSettings.sheetname = 'pk_dp_dastat.f_get_client';//5 - Good to show
@@ -270,11 +270,11 @@ CBSPublisher.prototype.executeFromExternalCall = function() {
 	//this.cbsWsSettings.sheetname = 'pk_dp_dpoper.get_clioper_new';//10
 	//this.cbsWsSettings.sheetname = 'pk_dp_roles.F_get_roles';// ERROR - FUNCTIONAL
 	//this.cbsWsSettings.sheetname = 'pk_dp_groupes.F_get_groupes';//11
-	this.cbsWsSettings.sheetname = 'pk_dp_freshmoney.f_get_freshrm';//12
+//	this.cbsWsSettings.sheetname = 'pk_dp_freshmoney.f_get_freshrm';//12
 	//this.cbsWsSettings.sheetname = 'PK_DP_DEMCHQ_TREE.report';//13 - demande cheque, client must be 741017
 	//this.cbsWsSettings.sheetname = 'pk_dp_bale2.f_get_bale2rm';//14
 	//this.cbsWsSettings.sheetname = 'pk_dp_oper.f_get_operssummaryrm';//15
-	//this.cbsWsSettings.sheetname = 'pk_dp_encours.get_encours';//16
+	this.cbsWsSettings.sheetname = 'pk_dp_encours.get_encours';//16
 //	this.cbsWsSettings.sheetname = 'pk_dp_depass.f_get_depassrm';
 	
 	// build the report
@@ -676,7 +676,44 @@ CBSPublisher.prototype.calcCompsInitialSize = function() {
 }
 
 CBSPublisher.prototype.calcCompsSize = function() {
-	console.log("calcCompsSize");
+	var initialSize = this.calcCompsInitialSize();
+	console.log("calcCompsSize: " + this.maxWidgetHeight + "    " + initialSize.treeGridMaxHeight);
+	
+	//Starting new calcCompsSize
+	var chartsContainer = this.reportPanel.getComponent(this.gridTreeAndChartsId).getComponent(this.chartsPanelId);
+	var mainTreeGrid = (this.isItTree) ? this.reportPanel.getComponent(this.gridTreeAndChartsId).getComponent(this.mainTreeId) : 
+		this.reportPanel.getComponent(this.gridTreeAndChartsId).getComponent(this.mainGridId);
+	
+	if(chartsContainer.items.length == 0 && mainTreeGrid != null){
+		mainTreeGrid.setWidth(this.maxWidgetWidth - 20);
+		var optimizedColumns = this.optimizeColumnsSize(this.gridColumns, this.maxWidgetWidth - 20);
+		mainTreeGrid.reconfigure(undefined, optimizedColumns);
+	}
+	else if(mainTreeGrid != null){
+		chartsContainer.setWidth(this.maxWidgetWidth * 3.5/10 - 27);
+		mainTreeGrid.setWidth(this.maxWidgetWidth * 6.5/10);
+		mainTreeGrid.setHeight(initialSize.treeGridMaxHeight);
+		var optimizedColumns = this.optimizeColumnsSize(this.gridColumns, this.maxWidgetWidth * 6.5/10);
+		mainTreeGrid.reconfigure(undefined, optimizedColumns);
+		
+//		var offset = $("#CBSCollapseButtonPlaceholder").offset();
+//		//Adding functionality for the button that causes the chart to collapse
+//		if($("#CBSChartCollapseButton").length == 0){
+//		$('body').append("<img id='CBSChartCollapseButton' src='images/studio/icon/CBS_collapse_chart.png' " +
+//			"style='cursor:pointer;position:absolute' /> ");
+//		$("#CBSChartCollapseButton").css(offset);
+//		}
+	}
+
+//	$("#CBSChartCollapseButton").click(function(){
+//		var instance = cbs_publisher_instance;
+//		var chartsContainer = instance.reportPanel.getComponent(instance.gridTreeAndChartsId).getComponent(instance.chartsPanelId);
+//		var mainTreeGrid = (instance.isItTree) ? instance.reportPanel.getComponent(instance.gridTreeAndChartsId).getComponent(instance.mainTreeId) : 
+//			instance.reportPanel.getComponent(instance.gridTreeAndChartsId).getComponent(instance.mainGridId);
+//		
+//		chartsContainer.setWidth(50);
+//	});
+	//Ending new calcCompsSize
 	var formsHeight = 0;
 	if (this.reportPanel.getComponent(this.normalFormId))
 		formsHeight += this.reportPanel.getComponent(this.normalFormId).getHeight();
@@ -798,6 +835,16 @@ CBSPublisher.prototype.renderReport = function() {
 			margin: '0, 20, 0, 0',
 			collapsed: false,// initially collapsed or not?
 			title: "<b>" + this.collapsedFormLevel_0_title + "</b>",
+			listeners: {
+				collapse: function(){
+					//set the width of tree grid. (it is getting smaller on collapse)
+					var instance = cbs_publisher_instance;
+					var mainTreeGrid = (instance.isItTree) ? 
+						instance.reportPanel.getComponent(instance.gridTreeAndChartsId).getComponent(instance.mainTreeId) : 
+						instance.reportPanel.getComponent(instance.gridTreeAndChartsId).getComponent(instance.mainGridId);
+					mainTreeGrid.setWidth(instance.mainTreeGridWidth);
+				}
+			},
 			html: html,
 			width: initialSize.collapsedFormWidth
 		});
@@ -827,7 +874,8 @@ CBSPublisher.prototype.renderReport = function() {
 
 		panel_items.push({
 			itemId: this.periodDimensionsId,
-			maxWidth: initialSize.dimensionLinksMaxWidth,
+			widt: initialSize.dimensionLinksMaxWidth, //added
+//			maxWidth: initialSize.dimensionLinksMaxWidth,
 			labelWidth: initialSize.dimensionLinksLabelMaxWidth,
 			xtype: 'combobox',
 		    fieldLabel: this.dimensionLinks.label,
@@ -866,12 +914,14 @@ CBSPublisher.prototype.renderReport = function() {
     	itemId: this.chartsPanelId,
 	    width: initialSize.chartsPanelWidth,
 	    height: initialSize.treeGridMaxHeight,
+//	    html: "<span id='CBSCollapseButtonPlaceholder' style='top:50%;position:relative'></span>",
     	items: chartItems,
     	plain: true,
     	activeTab: 0,
     	tabPosition: 'bottom',
     	margin: '0, 0, 0, 7'
 	};
+	
 	
 	//Changing the width and height of the tree depending on whether there are charts level 0 or not.
 	var mainTreeGridHeight;
@@ -903,8 +953,8 @@ CBSPublisher.prototype.renderReport = function() {
 		mainTreeGridItem = {
 			xtype: "treepanel",
 			itemId: this.mainTreeId,
-			maxHeight: initialSize.treeGridMaxHeight,
-			maxWidth: this.mainTreeGridWidth,
+//			maxHeight: initialSize.treeGridMaxHeight,
+//			maxWidth: this.mainTreeGridWidth,
 			height: mainTreeGridHeight,
 			useArrows: true,
 			rootVisible: false,
@@ -913,7 +963,23 @@ CBSPublisher.prototype.renderReport = function() {
 		    listeners: {
 		    	itemclick: function(view, record, item, index, e) {
 		    		cbs_publisher_instance.gridTreeClickAction(e, record);
-		    	}
+		    	},
+				collapse: function(){
+					//set the width of tree grid. (it is getting smaller on collapse)
+					var instance = cbs_publisher_instance;
+					var mainTreeGrid = (instance.isItTree) ? 
+						instance.reportPanel.getComponent(instance.gridTreeAndChartsId).getComponent(instance.mainTreeId) : 
+						instance.reportPanel.getComponent(instance.gridTreeAndChartsId).getComponent(instance.mainGridId);
+					mainTreeGrid.setWidth(instance.mainTreeGridWidth);
+				},
+				expand: function(){
+					//set the width of tree grid. (it is getting smaller on collapse)
+					var instance = cbs_publisher_instance;
+					var mainTreeGrid = (instance.isItTree) ? 
+						instance.reportPanel.getComponent(instance.gridTreeAndChartsId).getComponent(instance.mainTreeId) : 
+						instance.reportPanel.getComponent(instance.gridTreeAndChartsId).getComponent(instance.mainGridId);
+					mainTreeGrid.setWidth(instance.mainTreeGridWidth);
+				}
 	    	}
 		};
 	}
@@ -921,7 +987,8 @@ CBSPublisher.prototype.renderReport = function() {
 		mainTreeGridItem = {
 			xtype: "grid",
 			itemId: this.mainGridId,
-			maxHeight: initialSize.treeGridMaxHeight,
+			height: initialSize.treeGridMaxHeight, //added
+//			maxHeight: initialSize.treeGridMaxHeight,
 	    	columns: optimizedColumns,
 		    store: Ext.create("Ext.data.Store", { fields: this.gridFields_level_1, data: this.gridData_level_1 }),
 	    	listeners: {
@@ -948,9 +1015,7 @@ CBSPublisher.prototype.renderReport = function() {
 	panel_items.push({
 		itemId: this.gridTreeAndChartsId,
 		border: false,
-//		xtype: "fieldset",
-//		collapsible: true,
-//		collapsed: false,
+		split: true,
 		layout: {
     	    type: "hbox"
 		},
@@ -978,7 +1043,7 @@ CBSPublisher.prototype.renderReport = function() {
 	
 	this.buildSecondLevelTabs("0", 0);// second level - tabs
 	this.calcCompsSize();// adjust the components size
-	
+
 	closeCbsWaitMessage();
 }
 
@@ -1004,16 +1069,25 @@ CBSPublisher.prototype.doesGridContainDataColumns = function(gridColumns) {
 
 CBSPublisher.prototype.getHtmlForNormalForm = function() {
 	var html = "<table style='font-size:12px; border-spacing: 3 !important;' width='100%'>";// put data in several rows, 3 columns
-	for (var i = 0; i < this.normalFormLevel_0.length; i++) {
-		var tableRowTmpl = "<td>{0}</td><td><b>{1}</b></td>";
+	for (var i = 0; i < this.normalFormLevel_0.length/3; i++) {
+		var tableRowTmpl = "<td width='10%'>{0}</td><td width='23.33%'><b>{1}</b></td>";
 		
 		var tableRow = null;
 		if(this.normalFormLevel_0[i].label != null && Ext.String.trim(this.normalFormLevel_0[i].label).length > 0)
 			tableRow = Ext.String.format(tableRowTmpl, this.normalFormLevel_0[i].label, this.normalFormLevel_0[i].data);
+		else
+			tableRow += Ext.String.format(tableRowTmpl, "", "");
+		
 		if ((i + 1) < this.normalFormLevel_0.length && this.normalFormLevel_0[i+1].label != null)
 			tableRow += Ext.String.format(tableRowTmpl, this.normalFormLevel_0[++i].label, this.normalFormLevel_0[i].data);
+		else
+			tableRow += Ext.String.format(tableRowTmpl, "", "");
+		
 		if ((i + 1) < this.normalFormLevel_0.length && this.normalFormLevel_0[i+1].label != null)
 			tableRow += Ext.String.format(tableRowTmpl, this.normalFormLevel_0[++i].label, this.normalFormLevel_0[i].data);
+		else
+			tableRow += Ext.String.format(tableRowTmpl, "", "");
+		
 		if (tableRow !== null)
 			html = html + "<tr>" + tableRow + "</tr>";
 	}
@@ -1048,7 +1122,7 @@ CBSPublisher.prototype.getHtmlForCollapsedForm = function() {
 	return html;
 }
 
-CBSPublisher.prototype.optimizeColumnsSize = function(gridColumns) {
+CBSPublisher.prototype.optimizeColumnsSize = function(gridColumns, totalWidth) {
 	// first, make the largest column flex=1
 	var largestColumn = {index: 0, width: 0};
 	for (var i = 0; i < gridColumns.length; i++) {
@@ -1061,7 +1135,11 @@ CBSPublisher.prototype.optimizeColumnsSize = function(gridColumns) {
 	
 	// calculate the sizes (in %) of visible columns using "widthToCalc" values
 	var visibleColumnsWidthToCalc = 0;
-	var visibleColumnsWidth = this.mainTreeGridWidth;
+	var visibleColumnsWidth;
+	if(totalWidth == null)
+		visibleColumnsWidth = this.mainTreeGridWidth;
+	else
+		visibleColumnsWidth = totalWidth;
 	for (var i = 0; i < gridColumns.length; i++) {
 		if (gridColumns[i].hidden !== true) {
 			if (gridColumns[i].widthToCalc)
@@ -1310,19 +1388,19 @@ CBSPublisher.prototype.refreshReport = function() {
 				chartsContainer.removeAll();
 				chartsContainer.add(chartItems);
 				if (charts.length === 0)
-					chartsContainer.hidden = true;
+					chartsContainer.setVisible(false);
 			}
 		}
 		
 		// reload the tree or grid with new data
 		if (this.isItTree) {
-			var mainTree = this.reportPanel.getComponent(this.mainTreeId);
+			var mainTree = this.reportPanel.getComponent(this.gridTreeAndChartsId).getComponent(this.mainTreeId);
 			if (mainTree) {
 				var store_def_as_json = cbsPublisherTree.getTreeAsJson(this.gridData_level_1);
 				mainTree.setRootNode(store_def_as_json);
 			}
 		} else {
-			var mainGrid = this.reportPanel.getComponent(this.mainGridId);
+			var mainGrid = this.reportPanel.getComponent(this.gridTreeAndChartsId).getComponent(this.mainGridId);
 			if (mainGrid) {
 				var newStore = Ext.create("Ext.data.Store", { fields: this.gridFields_level_1, data: this.gridData_level_1 });
 				mainGrid.reconfigure(newStore);
@@ -1480,7 +1558,8 @@ CBSPublisher.prototype.buildSecondLevelTabs = function(treeIndex, parentIndex) {
 			else {// there are no first level tabs, not even container
 				var newTabContainer = Ext.create('Ext.tab.Panel', {
 					itemId: this.secondLevelTabsId,
-					maxWidth: this.maxWidgetWidth - 20, //minus vertical scrollbar
+					width: this.maxWidgetWidth - 20, //added
+//					maxWidth: this.maxWidgetWidth - 20, //minus vertical scrollbar
 					plain: true,
 					items: items
 				});
@@ -1520,13 +1599,13 @@ CBSPublisher.prototype.buildSecondLevelCharts = function(levelIndex, parentIndex
 		}
 		
 		if (chartsContainer.isHidden()) {
-			console.log("OK");
-			mainTreeGrid.setWidth(this.maxWidgetWidth * 65/100);
-			mainTreeGrid.setHeight(this.maxWidgetHeight * 6/10);
+//			mainTreeGrid.setWidth(this.maxWidgetWidth * 6.5/10);
+//			mainTreeGrid.setHeight(this.maxWidgetHeight * 6/10);
 //			this.calcCollapsedFormAndChartsSize(true);
-			chartsContainer.show();
+			chartsContainer.setVisible(true);
 		}
 	}
+	this.calcCompsSize();
 }
 
 CBSPublisher.prototype.buildCharts = function(levelIndex, parentIndex) {
@@ -1918,7 +1997,6 @@ CBSPublisher.prototype.openChartInPopup = function(chart) {
 
 CBSPublisher.prototype.buildErrorMessageBox = function() {
 	var sHTML = '<div id="8479143332_div3" class="gc_error_box" style="display: block;">' +
-		'<img elementid="8479143332_img" src="images/icon/bt_close.gif" class="gc_close_button" style="display: none;">' +
 		'<div elementid="8479143332_once" style="display: block;">' +
 		'<b>Code:</b> ' + this.error.code + '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' +
 		'<b>Description:</b> ' + this.error.description + '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' +
@@ -1932,16 +2010,17 @@ CBSPublisher.prototype.buildErrorMessageBox = function() {
 CBSPublisher.prototype.buildBackLinksHTML = function() {
 	var cbs_publisher_instance = this;
 	var backLinksHTML = '';
+	this.addBreadCrumbCSS();
 	
 	var addBackLink = function(placeholderId, reportName, stepNumber, currentStep) {
 		var stepId = Math.uuid(10, 10) + '_' + stepNumber;
 		
 		var stepHTML = '';
 		if (currentStep === true)
-			stepHTML = "<span class=\"breadcrumbText\">" + reportName + "</span>";
+			stepHTML = "<span class=\"breadcrumbText current\">" + reportName + "</span>";
 		else
-			stepHTML = "<span id=\"" + stepId + "\" class=\"breadcrumbText breadcrumbLink\">" + reportName + "</span>" +
-					"<img src=\"" + cbs_publisher_instance.IMAGES_URL + "breadcrumb.png\" class=\"breadcrumbSeparator\" />";
+			stepHTML = "<span id=\"" + stepId + "\" class=\"breadcrumbText breadcrumbLink\">" + reportName + "</span>";
+//					"<img src=\"" + cbs_publisher_instance.IMAGES_URL + "breadcrumb.png\" class=\"breadcrumbSeparator\" />";
 		
 		if (currentStep === false) {
 			$("body").on("click", "#" + stepId, function(event) {
@@ -1963,6 +2042,33 @@ CBSPublisher.prototype.buildBackLinksHTML = function() {
 		backLinksHTML = backLinksHTML + addBackLink(null, this.prev_wgt_placeholder_info.repTitles[this.prev_wgt_placeholder_info.IDs.length], this.prev_wgt_placeholder_info.IDs.length, true);
 	
 	return backLinksHTML;
+}
+
+CBSPublisher.prototype.addBreadCrumbCSS = function() {
+	var css = document.createElement("style");
+	css.type = "text/css";
+	css.innerHTML += ".breadcrumbText { float: left; margin: 0 .5em 0 1em;}";
+	css.innerHTML += ".breadcrumbText {background-image: -webkit-linear-gradient(left, #7394B5 0%, #9CB5CE 100%);" +
+			" float: left; padding: 0 .5em 0 .5em;" +
+			" text-decoration: none; color: white; text-shadow: 0 1px 0 rgba(255,255,255,.5);" +
+			"position: relative;}";
+	css.innerHTML += ".breadcrumbText:hover {color: black}";
+	css.innerHTML += ".breadcrumbText::before {content:''; position: absolute;" +
+			"top: 50%; margin-top: -1.5em; border-width: 1.5em 0 1.5em 1em;" +
+			"border-style: solid; border-color: #7394B5 #7394B5 #7394B5 transparent; left: -1em}";
+//	css.innerHTML += ".breadcrumbText:hover::before {border-color: #d78932 #d78932 #d78932 transparent;}";
+	css.innerHTML += ".breadcrumbText::after {content: ''; position: absolute; top: 50%;" +
+			"margin-top: -1.5em; border-top: 1.5em solid transparent; " +
+			"border-bottom: 1.5em solid transparent; border-left: 1em solid #9CB5CE; right: -1em;}";
+//	css.innerHTML += ".breadcrumbText:hover::after{border-left-color: #d78932;}";
+	css.innerHTML += ".current::after{content: normal;}";
+	css.innerHTML += ".current::before{border-color: #d78932 #d78932 #d78932 transparent;}";
+	css.innerHTML += ".current{border-top-right-radius: 2px; border-bottom-right-radius: 2px;" +
+			"background: #d78932 !important;}";
+	css.innerHTML += ".current:hover {color: white !important; cursor: default}";
+//	css.innerHTML += ".current, .current:hover{font-weight: bold; background: none; color: #444;}";
+//	css.innerHTML += ".current::after, .current::before{content: normal;}";
+	document.body.appendChild(css);
 }
 
 var cbsPublisherTree = (function() {
