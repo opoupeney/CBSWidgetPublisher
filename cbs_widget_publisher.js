@@ -238,7 +238,7 @@ CBSPublisher.prototype.setPrevWgtPlaceholderInfo = function(prevPlaceholderInfo)
 CBSPublisher.prototype.executeFromExternalCall = function() {
 	var cbs_publisher_instance = this;
 	
-//	 PRODUCTION: init the WsSettings (and external report back link) using externally passed parameters
+	// PRODUCTION: init the WsSettings (and external report back link) using externally passed parameters
 	this.cbsWsSettings.usr = user.properties.cas_attr.loginShell;
 	this.cbsWsSettings.lng = user.properties.cas_attr.preferredLanguage;
 	this.cbsWsSettings.roles = 'r';
@@ -830,7 +830,7 @@ CBSPublisher.prototype.renderReport = function() {
 			html: html
 		});
 		
-		panel_items.push({ xtype: "splitter", anchor: '100%'});// splitter between the levels
+		panel_items.push({ xtype: "splitter", anchor: '98.5%'});// splitter between the levels
 	}
 	
 	// first level - charts: build
@@ -894,7 +894,7 @@ CBSPublisher.prototype.renderReport = function() {
 //			maxWidth: initialSize.dimensionLinksMaxWidth,
 			labelWidth: initialSize.dimensionLinksLabelMaxWidth,
 			xtype: 'combobox',
-			anchor: '98.5%',
+			anchor: '25%',
 			padding: '0 0 10 0',
 		    fieldLabel: this.dimensionLinks.label,
 		    store: dimensionDataStore,
