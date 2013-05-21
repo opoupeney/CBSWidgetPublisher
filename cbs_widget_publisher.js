@@ -130,7 +130,7 @@ CBSPublisher.prototype.type="CBSPublisher";
 
 CBSPublisher.prototype.init = function(dataWidget, wgt_placeholder_id, cbsWsSettings) {
 	// constants
-	this.DATA_QUERY_NAME = "qWidgetPublisher";
+	this.DATA_QUERY_NAME = "qWidgetPublisher2";
 	this.PUBLISHER_DATA_QUERY_NAME = "qWidgetPublisherData";
 	this.CONTEXT_VALUE = {object_name: "CgbContext", object_value: "clientId"};
 	this.IMAGES_URL = "/CBSCloud/res/cb/images/publisher/";//"http://localhost:8080/RestFixture/images/";
@@ -239,21 +239,21 @@ CBSPublisher.prototype.executeFromExternalCall = function() {
 	var cbs_publisher_instance = this;
 	
 	// PRODUCTION: init the WsSettings (and external report back link) using externally passed parameters
-	this.cbsWsSettings.usr = user.properties.cas_attr.loginShell;
-	this.cbsWsSettings.lng = user.properties.cas_attr.preferredLanguage;
-	this.cbsWsSettings.roles = 'r';
-	this.cbsWsSettings.sheetname = this.dataWidget.parameters[this.SHEET_NAME_PARAMETER];
-	if ( appcontext[this.CONTEXT_VALUE.object_name] )
-		this.cbsWsSettings.client = appcontext[this.CONTEXT_VALUE.object_name][this.CONTEXT_VALUE.object_value];// get the clienId from the context
+//	this.cbsWsSettings.usr = user.properties.cas_attr.loginShell;
+//	this.cbsWsSettings.lng = user.properties.cas_attr.preferredLanguage;
+//	this.cbsWsSettings.roles = 'r';
+//	this.cbsWsSettings.sheetname = this.dataWidget.parameters[this.SHEET_NAME_PARAMETER];
+//	if ( appcontext[this.CONTEXT_VALUE.object_name] )
+//		this.cbsWsSettings.client = appcontext[this.CONTEXT_VALUE.object_name][this.CONTEXT_VALUE.object_value];// get the clienId from the context
 	
 	// DEBUGGING: hard code WsSettings (and external report back link) for testing
-//	this.cbsWsSettings.usr = 'SAUDI';//'MPELPEL';
-//	this.cbsWsSettings.lng = 'en';
-//	this.cbsWsSettings.roles = 'r';
+	this.cbsWsSettings.usr = 'SAUDI';//'MPELPEL';
+	this.cbsWsSettings.lng = 'en';
+	this.cbsWsSettings.roles = 'r';
 	
 	//this.cbsWsSettings.client = null;
 	//this.cbsWsSettings.client = 'CKHABBAZ';
-//	this.cbsWsSettings.client = '021249';
+	this.cbsWsSettings.client = '021249';
 //	this.cbsWsSettings.client = 'SAUDI';
 //	this.cbsWsSettings.client = '741017';
 //	this.cbsWsSettings.client = '723867';
@@ -271,12 +271,13 @@ CBSPublisher.prototype.executeFromExternalCall = function() {
 //	this.cbsWsSettings.sheetname = 'pk_dp_dpoper.get_clioper_new';//10
 //	this.cbsWsSettings.sheetname = 'pk_dp_roles.F_get_roles';// ERROR - FUNCTIONAL
 //	this.cbsWsSettings.sheetname = 'pk_dp_groupes.F_get_groupes';//11
-//	this.cbsWsSettings.sheetname = 'pk_dp_freshmoney.f_get_freshrm';//12
+	this.cbsWsSettings.sheetname = 'pk_dp_freshmoney.f_get_freshrm';//12
 //	this.cbsWsSettings.sheetname = 'PK_DP_DEMCHQ_TREE.report';//13 - demande cheque, client must be 741017
 //	this.cbsWsSettings.sheetname = 'pk_dp_bale2.f_get_bale2rm';//14
 //	this.cbsWsSettings.sheetname = 'pk_dp_oper.f_get_operssummaryrm';//15
 //	this.cbsWsSettings.sheetname = 'pk_dp_encours.get_encours';//16
 //	this.cbsWsSettings.sheetname = 'pk_dp_depass.f_get_depassrm';
+//	this.cbsWsSettings.sheetname = 'pk_dp_oper.get_oper';
 	
 	// build the report
 	cbs_publisher_instance.buildReport(true);
@@ -412,6 +413,8 @@ CBSPublisher.prototype.parseItem = function(item, index) {
         
         colDef.align = (item.c03 === "double") ? "right" : "left";
         colDef.widthToCalc = item.c05;
+        colDef.resizable = true;
+        colDef.flex = 1;
 
         this.gridColumns.push(colDef);
 		this.gridFields_level_1.push( {name: "c"+colIndex} );
@@ -465,7 +468,6 @@ CBSPublisher.prototype.parseItem = function(item, index) {
 		if (this.gridColumns[2] !== undefined && this.gridColumns[2].dataIndex === 'rep_icon') {
 			row.rep_icon = "<img src='" + this.IMAGES_URL + item.img + ".png' />";
 		}
-		
 		row.long_descr = item.c16;// add a data to the tooltip column
 		this.buildNextScreenLink(item, row);// add the data for the "NextScreen icon"
 		this.gridData_level_1.push( row );// add the row to the grid
@@ -621,12 +623,12 @@ CBSPublisher.prototype.buildNextScreenLink = function(item, row) {
 					cbs_publisher_instance.cbsWsSettings.roles + ";generalParams|" + nextScreenIconDef;
 			
 			// form the final link with parameters
-//			row.caction = row.caction + "<img id='" + iconId + "'" +
-//			" src='images/studio/icon/mvt.png' title='" + wsParamsArray[1] +
-//			"' next_screen_def='" + nextScreenIconDef + "'/>";
 			row.caction = row.caction + "<img id='" + iconId + "'" +
-				" src='" + cbs_publisher_instance.IMAGES_URL + wsParamsArray[0] + ".png' title='" + wsParamsArray[1] +
-				"' next_screen_def='" + nextScreenIconDef + "'/>";
+			" src='images/studio/icon/mvt.png' title='" + wsParamsArray[1] +
+			"' next_screen_def='" + nextScreenIconDef + "'/>";
+//			row.caction = row.caction + "<img id='" + iconId + "'" +
+//				" src='" + cbs_publisher_instance.IMAGES_URL + wsParamsArray[0] + ".png' title='" + wsParamsArray[1] +
+//				"' next_screen_def='" + nextScreenIconDef + "'/>";
 		};
 		
 		if (firstNextScreenIcon !== undefined)
@@ -680,43 +682,44 @@ CBSPublisher.prototype.calcCompsInitialSize = function() {
 }
 
 CBSPublisher.prototype.calcCompsSize = function() {
+//	var cbs_publisher_instance = this;
 //	var initialSize = this.calcCompsInitialSize();
 //	
-//	//Starting new calcCompsSize
-	var chartsContainer = this.reportPanel.getComponent(this.gridTreeAndChartsId).getComponent(this.chartsPanelId);
-	var mainTreeGrid = (this.isItTree) ? this.reportPanel.getComponent(this.gridTreeAndChartsId).getComponent(this.mainTreeId) : 
-		this.reportPanel.getComponent(this.gridTreeAndChartsId).getComponent(this.mainGridId);
-//	
-	if(chartsContainer.items.length == 0 && mainTreeGrid != null){
-//		mainTreeGrid.setWidth(this.maxWidgetWidth - 20);
-	console.log(mainTreeGrid.width);
-		var optimizedColumns = this.optimizeColumnsSize(this.gridColumns, mainTreeGrid.width);
-		mainTreeGrid.reconfigure(undefined, optimizedColumns);
-	}
-	else if(mainTreeGrid != null){
-//		chartsContainer.setWidth(this.maxWidgetWidth * 3.5/10 - 27);
-//		mainTreeGrid.setWidth(this.maxWidgetWidth * 6.5/10);
+////	//Starting new calcCompsSize
+//	var chartsContainer = this.reportPanel.getComponent(this.gridTreeAndChartsId).getComponent(this.chartsPanelId);
+//	var mainTreeGrid = (this.isItTree) ? this.reportPanel.getComponent(this.gridTreeAndChartsId).getComponent(this.mainTreeId) : 
+//		this.reportPanel.getComponent(this.gridTreeAndChartsId).getComponent(this.mainGridId);
+////	
+//	if(chartsContainer.items.length == 0 && mainTreeGrid != null){
+////		mainTreeGrid.setWidth(this.maxWidgetWidth - 20);
+//	console.log(mainTreeGrid.width);
+//		var optimizedColumns = this.optimizeColumnsSize(this.gridColumns, mainTreeGrid.width);
+//		mainTreeGrid.reconfigure(undefined, optimizedColumns);
+//	}
+//	else if(mainTreeGrid != null){
+////		chartsContainer.setWidth(this.maxWidgetWidth * 3.5/10 - 27);
+////		mainTreeGrid.setWidth(this.maxWidgetWidth * 6.5/10);
 //		mainTreeGrid.setHeight(initialSize.treeGridMaxHeight);
-		var optimizedColumns = this.optimizeColumnsSize(this.gridColumns, this.maxWidgetWidth * 6.5/10);
-		mainTreeGrid.reconfigure(undefined, optimizedColumns);
-//		
-////		var offset = $("#CBSCollapseButtonPlaceholder").offset();
-////		//Adding functionality for the button that causes the chart to collapse
-////		if($("#CBSChartCollapseButton").length == 0){
-////		$('body').append("<img id='CBSChartCollapseButton' src='images/studio/icon/CBS_collapse_chart.png' " +
-////			"style='cursor:pointer;position:absolute' /> ");
-////		$("#CBSChartCollapseButton").css(offset);
-////		}
-	}
-//
-//	$("#CBSChartCollapseButton").click(function(){
-//		var instance = cbs_publisher_instance;
-//		var chartsContainer = instance.reportPanel.getComponent(instance.gridTreeAndChartsId).getComponent(instance.chartsPanelId);
-//		var mainTreeGrid = (instance.isItTree) ? instance.reportPanel.getComponent(instance.gridTreeAndChartsId).getComponent(instance.mainTreeId) : 
-//			instance.reportPanel.getComponent(instance.gridTreeAndChartsId).getComponent(instance.mainGridId);
-//		
+//		var optimizedColumns = this.optimizeColumnsSize(this.gridColumns, this.maxWidgetWidth * 6.5/10);
+//		mainTreeGrid.reconfigure(undefined, optimizedColumns);
+		
+		//Adding functionality for the button that causes the chart to collapse
+//		if($("#CBSChartCollapseButton").length == 0){
+//		$('#CBSCollapseButtonPlaceholder').append("<img id='CBSChartCollapseButton' src='images/studio/icon/CBS_collapse_chart.png' " +
+//			"style='cursor:pointer;position:relative;top:40%;z-index:1;left:10px' /> ");
+//		}
+//	}
+
+//	$("#CBSCOLLAPSEBUTTONPLACEHOLDER").CLICK(FUNCTION(){
+//		ALERT("HIIII");
+//		VAR INSTANCE = CBS_PUBLISHER_INSTANCE;
+//		VAR CHARTSCONTAINER = INSTANCE.REPORTPANEL.GETCOMPONENT(INSTANCE.GRIDTREEANDCHARTSID).GETCOMPONENT(INSTANCE.CHARTSPANELID);
+//		VAR MAINTREEGRID = (INSTANCE.ISITTREE) ? INSTANCE.REPORTPANEL.GETCOMPONENT(INSTANCE.GRIDTREEANDCHARTSID).GETCOMPONENT(INSTANCE.MAINTREEID) : 
+//			INSTANCE.REPORTPANEL.GETCOMPONENT(INSTANCE.GRIDTREEANDCHARTSID).GETCOMPONENT(INSTANCE.MAINGRIDID);
+		
 //		chartsContainer.setWidth(50);
 //	});
+	
 //	//Ending new calcCompsSize
 //	var formsHeight = 0;
 //	if (this.reportPanel.getComponent(this.normalFormId))
@@ -773,7 +776,6 @@ CBSPublisher.prototype.calcCompsSize = function() {
 }
 
 CBSPublisher.prototype.calcCollapsedFormAndChartsSize = function(isChartsVisible) {
-	alert("OK");
 	var collapsedForm = this.reportPanel.getComponent(this.collapsedFormPanelId).getComponent(this.collapsedFormId);
 	var chartsContainer = this.reportPanel.getComponent(this.collapsedFormPanelId).getComponent(this.chartsPanelId);
     
@@ -927,20 +929,35 @@ CBSPublisher.prototype.renderReport = function() {
 	for (var i = 0; i < charts.length; i++) {
 		chartItems.push( charts[i] );
 	}
-	var chartsPanelDef = {
-		xtype: 'tabpanel',
-    	itemId: this.chartsPanelId,
-//	    width: initialSize.chartsPanelWidth,
-	    height: initialSize.treeGridMaxHeight,
-	    flex: 1,
-//	    html: "<span id='CBSCollapseButtonPlaceholder' style='top:50%;position:relative'></span>",
-    	items: chartItems,
-    	plain: true,
-    	activeTab: 0,
-    	tabPosition: 'bottom',
-    	margin: '0, 0, 0, 7'
-	};
-	
+	var chartsPanelDef = null;
+	if(this.gridData_level_1.length == 0){
+		chartsPanelDef = {
+			xtype: 'panel',
+			layout:{
+				type:'hbox'
+			},
+			itemId: this.chartsPanelId,
+			height: initialSize.treeGridMaxHeight,
+			flex: 1,
+			items: chartItems,
+			margin: '0, 0, 0, 0'
+		}
+	}
+	else{
+		chartsPanelDef = {
+			xtype: 'tabpanel',
+	    	itemId: this.chartsPanelId,
+	//	    width: initialSize.chartsPanelWidth,
+		    height: initialSize.treeGridMaxHeight,
+		    flex: 1,
+//		    html: "<span id='CBSCollapseButtonPlaceholder' style='top:50%;position:relative'></span>",
+	    	items: chartItems,
+	    	plain: true,
+	    	activeTab: 0,
+	    	tabPosition: 'bottom',
+	    	margin: '0, 0, 0, 0'
+		};
+	}
 	
 	//Changing the width and height of the tree depending on whether there are charts level 0 or not.
 	var mainTreeGridHeight;
@@ -974,11 +991,13 @@ CBSPublisher.prototype.renderReport = function() {
 			itemId: this.mainTreeId,
 //			maxHeight: initialSize.treeGridMaxHeight,
 //			maxWidth: this.mainTreeGridWidth,
+//			forceFit: true,
 			height: mainTreeGridHeight,
+//			width: this.mainTreeGridWidth,
 			useArrows: true,
 			rootVisible: false,
 			flex: 2,
-	    	columns: optimizedColumns,
+	    	columns: this.gridColumns,
 		    store: Ext.create("Ext.data.TreeStore", { fields: this.gridFields_level_1, root: store_def_as_json }),
 		    listeners: {
 		    	itemclick: function(view, record, item, index, e) {
@@ -1031,6 +1050,17 @@ CBSPublisher.prototype.renderReport = function() {
 		gridTreeAndCharts.push(mainTreeGridItem);
 //		panel_items.push(mainTreeGridItem);
 	
+	var splitter = Ext.create('Ext.resizer.Splitter', {
+		autoShow: true,
+		style: {
+		    background: '#E7E8E5',
+		    cursor: "w-resize"
+		},
+		width: 4,
+		left: 6
+	});
+	if(charts.length>0)
+		gridTreeAndCharts.push(splitter);
 	gridTreeAndCharts.push(chartsPanelDef);
 	
 	panel_items.push({
@@ -1064,6 +1094,14 @@ CBSPublisher.prototype.renderReport = function() {
 	    items: panel_items
 	});
 	
+	var id=null;
+	for(var i = 0; i<this.gridData_level_1.length; i++){
+		if(this.gridData_level_1[i].caction != null){
+			id = this.gridData_level_1[i].row_id;
+			i=this.gridData_level_1.length;
+		}
+	}
+	this.renderSecondLevelComps(id, false);
 	this.buildSecondLevelTabs("0", 0);// second level - tabs
 	this.calcCompsSize();// adjust the components size
 
@@ -1093,7 +1131,7 @@ CBSPublisher.prototype.doesGridContainDataColumns = function(gridColumns) {
 CBSPublisher.prototype.getHtmlForNormalForm = function() {
 	var html = "<table style='font-size:12px; border-spacing: 3 !important;' width='100%'>";// put data in several rows, 3 columns
 	for (var i = 0; i < this.normalFormLevel_0.length/3; i++) {
-		var tableRowTmpl = "<td width='10%'>{0}</td><td width='23.33%'><b>{1}</b></td>";
+		var tableRowTmpl = "<td width='10%' class='label_bold'>{0}</td><td width='23.33%' class='label_normal'>{1}</td>";
 		
 		var tableRow = null;
 		if(this.normalFormLevel_0[i].label != null && Ext.String.trim(this.normalFormLevel_0[i].label).length > 0)
@@ -1121,7 +1159,7 @@ CBSPublisher.prototype.getHtmlForNormalForm = function() {
 CBSPublisher.prototype.getHtmlForCollapsedForm = function() {
 	var html = "<table style='font-size:12px; border-spacing: 3 !important; border-collapse: separate !important;' width='100%'>";// put data in several rows, 3 columns
 	for (var i = 0; i < this.collapsedFormLevel_0.length; i++) {
-		var tableRowTmpl = "<td>{0}</td><td><b>{1}</b></td>";
+		var tableRowTmpl = "<td class='label_bold'>{0}</td><td class='label_normal'>{1}</td>";
 		
 		var tableRow = null;
 		if(this.collapsedFormLevel_0[i].label != null)
@@ -1338,7 +1376,6 @@ CBSPublisher.prototype.executeDataQueryContextMenuItem = function(dataQueryName,
 };
 
 CBSPublisher.prototype.refreshReport = function() {
-	console.log("refreshReport");
 	// remove tabs
 	this.reportPanel.remove( this.reportPanel.getComponent(this.secondLevelTabsId) );
 	
@@ -1433,6 +1470,15 @@ CBSPublisher.prototype.refreshReport = function() {
 		
 		this.buildSecondLevelTabs("0", 0);// second level - tabs
 	}
+	
+	var id=null;
+	for(var i = 0; i<this.gridData_level_1.length; i++){
+		if(this.gridData_level_1[i].caction != null){
+			id = this.gridData_level_1[i].row_id;
+			i=this.gridData_level_1.length;
+		}
+	}
+	this.renderSecondLevelComps(id, false);
 	
 	this.calcCompsSize();// adjust the components size
 	closeCbsWaitMessage();
@@ -1690,7 +1736,8 @@ CBSPublisher.prototype.buildPieChart = function(chartDef) {
 		title: chartDef.series[0].c01,
 		legend: { position: 'right' },
 		xtype: 'chart',
-		height: initialSize.firstLevelChartsMaxHeight,
+		height: initialSize.treeGridMaxHeight,
+		flex: 1,
 		animate: true,
 	    store: store,
 	    shadow: true,
@@ -1863,7 +1910,8 @@ CBSPublisher.prototype.buildLineChart = function(chartDef) {
 			title: chartDef.label,
 			legend: { position: 'right' },
 			style: 'background:#fff',
-		    height: initialSize.firstLevelChartsMaxHeight,
+			height: initialSize.treeGridMaxHeight,
+			flex: 1,
 		    animate: true,
 		    store: store,
 		    axes: axes,
@@ -1918,6 +1966,47 @@ CBSPublisher.prototype.buildBarChart = function(chartDef) {
 			data.push(dataItem);
 	}
 	
+	var series = null;
+	if(chartDef.series.length <=3){
+		series = [{
+	        type: 'bar',
+	        axis: 'bottom',
+	        highlight: true,
+	        column: true,
+	        tips: {
+	        	trackMouse: true,
+	        	width: 140,
+	        	height: 48,
+	        	renderer: function(storeItem, item) {
+	        		this.setTitle(storeItem.get('name') + ': ' + Ext.util.Format.number(item.value[1], '0,0.00'));
+	        	}
+	        },
+	        style: {
+	        	width: 80
+	        },
+	        xField: xFields,
+	        yField: yFields
+	    }];
+	}
+	else{
+		series = [{
+	        type: 'bar',
+	        axis: 'bottom',
+	        highlight: true,
+	        column: true,
+	        tips: {
+	        	trackMouse: true,
+	        	width: 140,
+	        	height: 48,
+	        	renderer: function(storeItem, item) {
+	        		this.setTitle(storeItem.get('name') + ': ' + Ext.util.Format.number(item.value[1], '0,0.00'));
+	        	}
+	        },
+	        xField: xFields,
+	        yField: yFields
+	    }];
+	}
+	
 	var store = Ext.create('Ext.data.JsonStore', {
 	    fields: fields,
 	    data: data
@@ -1928,7 +2017,8 @@ CBSPublisher.prototype.buildBarChart = function(chartDef) {
 		xtype: 'chart',
 		title: chartDef.series[0].c02,
 		legend: legend,
-		height: initialSize.firstLevelChartsMaxHeight,
+		height: initialSize.treeGridMaxHeight,
+		flex: 1,
 		animate: true, 
 	    store: store,
 	    axes: [{
@@ -1945,44 +2035,47 @@ CBSPublisher.prototype.buildBarChart = function(chartDef) {
 	        position: 'bottom',
 	        fields: xFields
 	    }],
-	    series: [{
-	        type: 'bar',
-	        axis: 'bottom',
-	        highlight: true,
-	        column: true,
-	        tips: {
-	        	trackMouse: true,
-	        	width: 140,
-	        	height: 35,
-	        	renderer: function(storeItem, item) {
-	        		this.setTitle(storeItem.get('name') + ': ' + Ext.util.Format.number(item.value[1], '0,0.00'));
-	        	}
-	        },
-//	        label: {
-//	        	display: 'insideEnd',
-//	            field: yFields,
-//	            renderer: function(storeItem) {
-//	        		return Ext.util.Format.number(storeItem, '0,0.00');
-//	            },
-//	            orientation: 'horizontal',
-//	            color: '#333',
-//	            'text-anchor': 'middle'
+	    series: series
+//	    [{ type: 'bar',
+//	        axis: 'bottom',
+//	        highlight: true,
+//	        column: true,
+//	        tips: {
+//	        	trackMouse: true,
+//	        	width: 140,
+//	        	height: 35,
+//	        	renderer: function(storeItem, item) {
+//	        		this.setTitle(storeItem.get('name') + ': ' + Ext.util.Format.number(item.value[1], '0,0.00'));
+//	        	}
 //	        },
-	        xField: xFields,
-	        yField: yFields
-//	        renderer: function(sprite, record, attr, index, store) {
-//	        	var colors = ['rgb(47, 162, 223)',
-//			                'rgb(60, 133, 46)',
-//			                'rgb(234, 102, 17)',
-//			                'rgb(154, 176, 213)',
-//			                'rgb(186, 10, 25)',
-//			                'rgb(40, 40, 40)'];
-//
-//	            return Ext.apply(attr, {
-//	                fill: colors[index % colors.length]
-//	            });
-//	        }
-	    }]
+//	        style: {
+//	        	width: 50
+//	        },
+////	        label: {
+////	        	display: 'insideEnd',
+////	            field: yFields,
+////	            renderer: function(storeItem) {
+////	        		return Ext.util.Format.number(storeItem, '0,0.00');
+////	            },
+////	            orientation: 'horizontal',
+////	            color: '#333',
+////	            'text-anchor': 'middle'
+////	        },
+//	        xField: xFields,
+//	        yField: yFields
+////	        renderer: function(sprite, record, attr, index, store) {
+////	        	var colors = ['rgb(47, 162, 223)',
+////			                'rgb(60, 133, 46)',
+////			                'rgb(234, 102, 17)',
+////			                'rgb(154, 176, 213)',
+////			                'rgb(186, 10, 25)',
+////			                'rgb(40, 40, 40)'];
+////
+////	            return Ext.apply(attr, {
+////	                fill: colors[index % colors.length]
+////	            });
+////	        }
+//	    }]
 	};
 	
 	var showChartInPopup = function() {
