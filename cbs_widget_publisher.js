@@ -130,7 +130,7 @@ CBSPublisher.prototype.type="CBSPublisher";
 
 CBSPublisher.prototype.init = function(dataWidget, wgt_placeholder_id, cbsWsSettings) {
 	// constants
-	this.DATA_QUERY_NAME = "qWidgetPublisher2";
+	this.DATA_QUERY_NAME = "qWidgetPublisher";
 	this.PUBLISHER_DATA_QUERY_NAME = "qWidgetPublisherData";
 	this.CONTEXT_VALUE = {object_name: "CgbContext", object_value: "clientId"};
 	this.IMAGES_URL = "/CBSCloud/res/cb/images/publisher/";//"http://localhost:8080/RestFixture/images/";
@@ -239,21 +239,21 @@ CBSPublisher.prototype.executeFromExternalCall = function() {
 	var cbs_publisher_instance = this;
 	
 	// PRODUCTION: init the WsSettings (and external report back link) using externally passed parameters
-//	this.cbsWsSettings.usr = user.properties.cas_attr.loginShell;
-//	this.cbsWsSettings.lng = user.properties.cas_attr.preferredLanguage;
-//	this.cbsWsSettings.roles = 'r';
-//	this.cbsWsSettings.sheetname = this.dataWidget.parameters[this.SHEET_NAME_PARAMETER];
-//	if ( appcontext[this.CONTEXT_VALUE.object_name] )
-//		this.cbsWsSettings.client = appcontext[this.CONTEXT_VALUE.object_name][this.CONTEXT_VALUE.object_value];// get the clienId from the context
+	this.cbsWsSettings.usr = user.properties.cas_attr.loginShell;
+	this.cbsWsSettings.lng = user.properties.cas_attr.preferredLanguage;
+	this.cbsWsSettings.roles = 'r';
+	this.cbsWsSettings.sheetname = this.dataWidget.parameters[this.SHEET_NAME_PARAMETER];
+	if ( appcontext[this.CONTEXT_VALUE.object_name] )
+		this.cbsWsSettings.client = appcontext[this.CONTEXT_VALUE.object_name][this.CONTEXT_VALUE.object_value];// get the clienId from the context
 	
 	// DEBUGGING: hard code WsSettings (and external report back link) for testing
-	this.cbsWsSettings.usr = 'SAUDI';//'MPELPEL';
-	this.cbsWsSettings.lng = 'en';
-	this.cbsWsSettings.roles = 'r';
+//	this.cbsWsSettings.usr = 'SAUDI';//'MPELPEL';
+//	this.cbsWsSettings.lng = 'en';
+//	this.cbsWsSettings.roles = 'r';
 	
 	//this.cbsWsSettings.client = null;
 	//this.cbsWsSettings.client = 'CKHABBAZ';
-	this.cbsWsSettings.client = '021249';
+//	this.cbsWsSettings.client = '021249';
 //	this.cbsWsSettings.client = 'SAUDI';
 //	this.cbsWsSettings.client = '741017';
 //	this.cbsWsSettings.client = '723867';
@@ -270,7 +270,7 @@ CBSPublisher.prototype.executeFromExternalCall = function() {
 //	this.cbsWsSettings.sheetname = 'pk_dp_oper.get_clioper';//9
 //	this.cbsWsSettings.sheetname = 'pk_dp_dpoper.get_clioper_new';//10
 //	this.cbsWsSettings.sheetname = 'pk_dp_roles.F_get_roles';// ERROR - FUNCTIONAL
-	this.cbsWsSettings.sheetname = 'pk_dp_groupes.F_get_groupes';//11
+//	this.cbsWsSettings.sheetname = 'pk_dp_groupes.F_get_groupes';//11
 //	this.cbsWsSettings.sheetname = 'pk_dp_freshmoney.f_get_freshrm';//12
 //	this.cbsWsSettings.sheetname = 'PK_DP_DEMCHQ_TREE.report';//13 - demande cheque, client must be 741017
 //	this.cbsWsSettings.sheetname = 'pk_dp_bale2.f_get_bale2rm';//14
