@@ -270,14 +270,16 @@ CBSPublisher.prototype.executeFromExternalCall = function() {
 //	this.cbsWsSettings.sheetname = 'pk_dp_oper.get_clioper';//9
 //	this.cbsWsSettings.sheetname = 'pk_dp_dpoper.get_clioper_new';//10
 //	this.cbsWsSettings.sheetname = 'pk_dp_roles.F_get_roles';// ERROR - FUNCTIONAL
-//	this.cbsWsSettings.sheetname = 'pk_dp_groupes.F_get_groupes';//11
-	this.cbsWsSettings.sheetname = 'pk_dp_freshmoney.f_get_freshrm';//12
+	this.cbsWsSettings.sheetname = 'pk_dp_groupes.F_get_groupes';//11
+//	this.cbsWsSettings.sheetname = 'pk_dp_freshmoney.f_get_freshrm';//12
 //	this.cbsWsSettings.sheetname = 'PK_DP_DEMCHQ_TREE.report';//13 - demande cheque, client must be 741017
 //	this.cbsWsSettings.sheetname = 'pk_dp_bale2.f_get_bale2rm';//14
 //	this.cbsWsSettings.sheetname = 'pk_dp_oper.f_get_operssummaryrm';//15
 //	this.cbsWsSettings.sheetname = 'pk_dp_encours.get_encours';//16
 //	this.cbsWsSettings.sheetname = 'pk_dp_depass.f_get_depassrm';
 //	this.cbsWsSettings.sheetname = 'pk_dp_oper.get_oper';
+//	this.cbsWsSettings.sheetname = 'pk_dp_statoper.f_get_opersrm';
+//	this.cbsWsSettings.sheetname = 'pk_dp_demchq_tree.report';
 	
 	// build the report
 	cbs_publisher_instance.buildReport(true);
@@ -408,13 +410,14 @@ CBSPublisher.prototype.parseItem = function(item, index) {
         
         // prepare the column definiiton
         var colDef = {header: item.c02, dataIndex: "c"+colIndex, renderer: columnRenderer};
-        if (colIndex === 1 && this.isItTree === true)
+        if (colIndex === 1 && this.isItTree === true){
         	colDef.xtype = 'treecolumn';
+        }
         
         colDef.align = (item.c03 === "double") ? "right" : "left";
         colDef.widthToCalc = item.c05;
         colDef.resizable = true;
-        colDef.flex = 1;
+//        colDef.flex = 1;
 
         this.gridColumns.push(colDef);
 		this.gridFields_level_1.push( {name: "c"+colIndex} );
@@ -621,14 +624,13 @@ CBSPublisher.prototype.buildNextScreenLink = function(item, row) {
 			// add WS params that are not in nextScreenIconDef: use '|' to separate the additional params and the ones from WS
 			nextScreenIconDef = cbs_publisher_instance.cbsWsSettings.usr + ";" + cbs_publisher_instance.cbsWsSettings.lng + ";" +
 					cbs_publisher_instance.cbsWsSettings.roles + ";generalParams|" + nextScreenIconDef;
-			
 			// form the final link with parameters
-			row.caction = row.caction + "<img id='" + iconId + "'" +
-			" src='images/studio/icon/mvt.png' title='" + wsParamsArray[1] +
-			"' next_screen_def='" + nextScreenIconDef + "'/>";
 //			row.caction = row.caction + "<img id='" + iconId + "'" +
-//				" src='" + cbs_publisher_instance.IMAGES_URL + wsParamsArray[0] + ".png' title='" + wsParamsArray[1] +
-//				"' next_screen_def='" + nextScreenIconDef + "'/>";
+//			" src='images/studio/icon/mvt.png' title='" + wsParamsArray[1] +
+//			"' next_screen_def='" + nextScreenIconDef + "'/>";
+			row.caction = row.caction + "<img id='" + iconId + "'" +
+				" src='" + cbs_publisher_instance.IMAGES_URL + wsParamsArray[0] + ".png' title='" + wsParamsArray[1] +
+				"' next_screen_def='" + nextScreenIconDef + "'/>";
 		};
 		
 		if (firstNextScreenIcon !== undefined)
@@ -681,117 +683,39 @@ CBSPublisher.prototype.calcCompsInitialSize = function() {
 	return initialSize;
 }
 
-CBSPublisher.prototype.calcCompsSize = function() {
-//	var cbs_publisher_instance = this;
-//	var initialSize = this.calcCompsInitialSize();
-//	
-////	//Starting new calcCompsSize
-//	var chartsContainer = this.reportPanel.getComponent(this.gridTreeAndChartsId).getComponent(this.chartsPanelId);
-//	var mainTreeGrid = (this.isItTree) ? this.reportPanel.getComponent(this.gridTreeAndChartsId).getComponent(this.mainTreeId) : 
-//		this.reportPanel.getComponent(this.gridTreeAndChartsId).getComponent(this.mainGridId);
-////	
-//	if(chartsContainer.items.length == 0 && mainTreeGrid != null){
-////		mainTreeGrid.setWidth(this.maxWidgetWidth - 20);
-//	console.log(mainTreeGrid.width);
-//		var optimizedColumns = this.optimizeColumnsSize(this.gridColumns, mainTreeGrid.width);
-//		mainTreeGrid.reconfigure(undefined, optimizedColumns);
-//	}
-//	else if(mainTreeGrid != null){
-////		chartsContainer.setWidth(this.maxWidgetWidth * 3.5/10 - 27);
-////		mainTreeGrid.setWidth(this.maxWidgetWidth * 6.5/10);
-//		mainTreeGrid.setHeight(initialSize.treeGridMaxHeight);
-//		var optimizedColumns = this.optimizeColumnsSize(this.gridColumns, this.maxWidgetWidth * 6.5/10);
-//		mainTreeGrid.reconfigure(undefined, optimizedColumns);
-		
-		//Adding functionality for the button that causes the chart to collapse
-//		if($("#CBSChartCollapseButton").length == 0){
-//		$('#CBSCollapseButtonPlaceholder').append("<img id='CBSChartCollapseButton' src='images/studio/icon/CBS_collapse_chart.png' " +
-//			"style='cursor:pointer;position:relative;top:40%;z-index:1;left:10px' /> ");
-//		}
-//	}
-
-//	$("#CBSCOLLAPSEBUTTONPLACEHOLDER").CLICK(FUNCTION(){
-//		ALERT("HIIII");
-//		VAR INSTANCE = CBS_PUBLISHER_INSTANCE;
-//		VAR CHARTSCONTAINER = INSTANCE.REPORTPANEL.GETCOMPONENT(INSTANCE.GRIDTREEANDCHARTSID).GETCOMPONENT(INSTANCE.CHARTSPANELID);
-//		VAR MAINTREEGRID = (INSTANCE.ISITTREE) ? INSTANCE.REPORTPANEL.GETCOMPONENT(INSTANCE.GRIDTREEANDCHARTSID).GETCOMPONENT(INSTANCE.MAINTREEID) : 
-//			INSTANCE.REPORTPANEL.GETCOMPONENT(INSTANCE.GRIDTREEANDCHARTSID).GETCOMPONENT(INSTANCE.MAINGRIDID);
-		
-//		chartsContainer.setWidth(50);
-//	});
+CBSPublisher.prototype.optimizeColumnsSize = function(gridColumns, totalWidth) {
+	// first, make the largest column flex=1
+	var largestColumn = {index: 0, width: 0};
+	for (var i = 0; i < gridColumns.length; i++) {
+		if (parseInt(gridColumns[i].widthToCalc) > parseInt(largestColumn.width)) {
+			largestColumn.width = gridColumns[i].widthToCalc;
+			largestColumn.index = i;
+		}
+	}
+	gridColumns[ largestColumn.index ].flex = 1;
 	
-//	//Ending new calcCompsSize
-//	var formsHeight = 0;
-//	if (this.reportPanel.getComponent(this.normalFormId))
-//		formsHeight += this.reportPanel.getComponent(this.normalFormId).getHeight();
-//	
-//	formsHeight = formsHeight * 4;//TODO: this is a temp solution, in reality, the fieldset (collapsedForm) height must be taken into account but it behaves strangely
-//	
-////	var mainTreeGrid = (this.isItTree) ? this.reportPanel.getComponent(this.gridTreeAndChartsId).getComponent(this.mainTreeId) : 
-////		this.reportPanel.getComponent(this.gridTreeAndChartsId).getComponent(this.mainGridId);
-//	var mainTreeGrid = (this.isItTree) ? this.reportPanel.getComponent(this.mainTreeId) : 
-//		this.reportPanel.getComponent(this.mainGridId);
-//	var secondLevelTabs = this.reportPanel.getComponent(this.secondLevelTabsId);
-//	var collapsedFormPanel = this.reportPanel.getComponent(this.collapsedFormPanelId);
-//	var collapsedForm = null;
-//	var chartsContainer = this.reportPanel.getComponent(this.gridTreeAndChartsId).getComponent(this.chartsPanelId);
-//	if (collapsedFormPanel)
-//		collapsedForm = this.reportPanel.getComponent(this.collapsedFormPanelId).getComponent(this.collapsedFormId);
-//	
-//	if (secondLevelTabs) {
-//		if (mainTreeGrid) {
-//			mainTreeGrid.setHeight((this.maxWidgetHeight * 4 / 10) - (formsHeight / 3));
-//			secondLevelTabs.setHeight((this.maxWidgetHeight * 4 / 10) - (formsHeight / 3));
-//		} else {
-//			secondLevelTabs.setHeight((this.maxWidgetHeight * 5 / 10) - (formsHeight / 3));
-//		}
-//	}
-//	else if (secondLevelTabs) {
-//		if (mainTreeGrid)
-//			mainTreeGrid.setHeight(this.maxWidgetHeight * 4 / 10 - formsHeight);
-//	}
-//	else if (secondLevelTabs === undefined) {
-//		if (mainTreeGrid)
-//			mainTreeGrid.setHeight(null);// adjust the height of the main tree/grid - 'null' means 'auto'
-//	}
-//	
-//	
-////	var chartsContainer = null;
-////	if (collapsedFormPanel)
-////		chartsContainer = this.reportPanel.getComponent(this.gridTreeAndChartsId).getComponent(this.chartsPanelId);
-//	
-//	if (collapsedForm && mainTreeGrid && secondLevelTabs) {
-//		var formOrChartHeight = (collapsedForm) ? collapsedForm.getHeight() : chartsContainer.getHeight();
-//		mainTreeGrid.setHeight((this.maxWidgetHeight - formOrChartHeight) / 2 - 20);//-60
-//		secondLevelTabs.setHeight((this.maxWidgetHeight - formOrChartHeight) / 2 - 20);
-//	}
-//	
-////	if (chartsContainer && chartsContainer.isHidden())
-////		this.calcCollapsedFormAndChartsSize(false);
-////	else if (chartsContainer && chartsContainer.isHidden() === false)
-////		this.calcCollapsedFormAndChartsSize(true);
-//	
-//	if (mainTreeGrid && collapsedForm === undefined && secondLevelTabs === undefined)
-//		mainTreeGrid.setHeight(this.maxWidgetHeight / 2 - formsHeight);
-}
+	// calculate the sizes (in %) of visible columns using "widthToCalc" values
+	var visibleColumnsWidthToCalc = 0;
+	var visibleColumnsWidth;
+	if(totalWidth == null)
+		visibleColumnsWidth = this.mainTreeGridWidth;
+	else
+		visibleColumnsWidth = totalWidth;
+	for (var i = 0; i < gridColumns.length; i++) {
+		if (gridColumns[i].hidden !== true) {
+			if (gridColumns[i].widthToCalc)
+				visibleColumnsWidthToCalc = visibleColumnsWidthToCalc + parseInt( gridColumns[i].widthToCalc );
+			else
+				visibleColumnsWidth = visibleColumnsWidth - gridColumns[i].width;
+		}
+	}
 
-CBSPublisher.prototype.calcCollapsedFormAndChartsSize = function(isChartsVisible) {
-	var collapsedForm = this.reportPanel.getComponent(this.collapsedFormPanelId).getComponent(this.collapsedFormId);
-	var chartsContainer = this.reportPanel.getComponent(this.collapsedFormPanelId).getComponent(this.chartsPanelId);
-    
-    if (collapsedForm && isChartsVisible) {
-    	collapsedForm.setWidth(this.maxWidgetWidth * 6 / 10);
-    	chartsContainer.setWidth(this.maxWidgetWidth - collapsedForm.getWidth() - 20);
-    }
-    else if (collapsedForm) {
-    	collapsedForm.setWidth(this.maxWidgetWidth);
-    }
-    else if (isChartsVisible) {
-    	chartsContainer.setWidth(this.maxWidgetWidth);
-    }
-    
-    if (collapsedForm && chartsContainer)
-    	chartsContainer.setHeight( collapsedForm.getHeight() );
+	for (var i = 0; i < gridColumns.length; i++) {
+		if (gridColumns[i].hidden !== true && gridColumns[i].widthToCalc)
+			gridColumns[i].width = visibleColumnsWidth * gridColumns[i].widthToCalc / visibleColumnsWidthToCalc;
+	}
+	
+	return gridColumns;
 }
 
 CBSPublisher.prototype.renderReport = function() {
@@ -848,21 +772,9 @@ CBSPublisher.prototype.renderReport = function() {
 			xtype: 'fieldset',
 			collapsible: true,
 			flex: 1,
-//			margin: '0, 20, 0, 0',
 			collapsed: false,// initially collapsed or not?
 			title: "<b>" + this.collapsedFormLevel_0_title + "</b>",
-//			listeners: {
-//				collapse: function(){
-//					//set the width of tree grid. (it is getting smaller on collapse)
-//					var instance = cbs_publisher_instance;
-//					var mainTreeGrid = (instance.isItTree) ? 
-//						instance.reportPanel.getComponent(instance.gridTreeAndChartsId).getComponent(instance.mainTreeId) : 
-//						instance.reportPanel.getComponent(instance.gridTreeAndChartsId).getComponent(instance.mainGridId);
-//					mainTreeGrid.setWidth(instance.mainTreeGridWidth);
-//				}
-//			},
 			html: html,
-//			width: initialSize.collapsedFormWidth
 		});
 	}
 		
@@ -892,8 +804,6 @@ CBSPublisher.prototype.renderReport = function() {
 
 		panel_items.push({
 			itemId: this.periodDimensionsId,
-//			width: initialSize.dimensionLinksMaxWidth, //added
-//			maxWidth: initialSize.dimensionLinksMaxWidth,
 			labelWidth: initialSize.dimensionLinksLabelMaxWidth,
 			xtype: 'combobox',
 			anchor: '25%',
@@ -947,10 +857,8 @@ CBSPublisher.prototype.renderReport = function() {
 		chartsPanelDef = {
 			xtype: 'tabpanel',
 	    	itemId: this.chartsPanelId,
-	//	    width: initialSize.chartsPanelWidth,
 		    height: initialSize.treeGridMaxHeight,
 		    flex: 1,
-//		    html: "<span id='CBSCollapseButtonPlaceholder' style='top:50%;position:relative'></span>",
 	    	items: chartItems,
 	    	plain: true,
 	    	activeTab: 0,
@@ -980,55 +888,34 @@ CBSPublisher.prototype.renderReport = function() {
 	
 	// 2) create and add a grid or tree item
 	var mainTreeGridItem = null;
-	var optimizedColumns = this.optimizeColumnsSize(this.gridColumns);
 	if (this.isItTree) {
 		// prepare the data for the TreeStore and get them as a JSON object
 		var store_def_as_json = cbsPublisherTree.getTreeAsJson(this.gridData_level_1);
-		
+		var optimizedColumns = this.optimizeColumnsSize(this.gridColumns);
 		// Create a Tree component using the prepared data
 		mainTreeGridItem = {
 			xtype: "treepanel",
 			itemId: this.mainTreeId,
-//			maxHeight: initialSize.treeGridMaxHeight,
-//			maxWidth: this.mainTreeGridWidth,
-//			forceFit: true,
 			height: mainTreeGridHeight,
-//			width: this.mainTreeGridWidth,
 			useArrows: true,
 			rootVisible: false,
 			flex: 2,
-	    	columns: this.gridColumns,
+	    	columns: optimizedColumns,
 		    store: Ext.create("Ext.data.TreeStore", { fields: this.gridFields_level_1, root: store_def_as_json }),
 		    listeners: {
 		    	itemclick: function(view, record, item, index, e) {
 		    		cbs_publisher_instance.gridTreeClickAction(e, record);
 		    	}
-//				collapse: function(){
-//					//set the width of tree grid. (it is getting smaller on collapse)
-//					var instance = cbs_publisher_instance;
-//					var mainTreeGrid = (instance.isItTree) ? 
-//						instance.reportPanel.getComponent(instance.gridTreeAndChartsId).getComponent(instance.mainTreeId) : 
-//						instance.reportPanel.getComponent(instance.gridTreeAndChartsId).getComponent(instance.mainGridId);
-//					mainTreeGrid.setWidth(instance.mainTreeGridWidth);
-//				},
-//				expand: function(){
-//					//set the width of tree grid. (it is getting smaller on collapse)
-//					var instance = cbs_publisher_instance;
-//					var mainTreeGrid = (instance.isItTree) ? 
-//						instance.reportPanel.getComponent(instance.gridTreeAndChartsId).getComponent(instance.mainTreeId) : 
-//						instance.reportPanel.getComponent(instance.gridTreeAndChartsId).getComponent(instance.mainGridId);
-//					mainTreeGrid.setWidth(instance.mainTreeGridWidth);
-//				}
 	    	}
 		};
 	}
 	else {
+		var optimizedColumns = this.optimizeColumnsSize(this.gridColumns);
 		mainTreeGridItem = {
 			xtype: "grid",
 			itemId: this.mainGridId,
 			flex: 2,
 			height: initialSize.treeGridMaxHeight, //added
-//			maxHeight: initialSize.treeGridMaxHeight,
 	    	columns: optimizedColumns,
 		    store: Ext.create("Ext.data.Store", { fields: this.gridFields_level_1, data: this.gridData_level_1 }),
 	    	listeners: {
@@ -1086,11 +973,7 @@ CBSPublisher.prototype.renderReport = function() {
 	    border: false,
     	layout: 'anchor',
     	renderTo: this.wgt_placeholder_id,
-//	    layout: {
-//    	    type: "vbox",
-//        	align: "stretch",
-//        	defaultMargins: {top: 4, right: 0, bottom: 0, left: 0}
-//    	},
+//    	bodyStyle:{"background-color":"#fbfbfb"},
 	    items: panel_items
 	});
 	
@@ -1103,7 +986,6 @@ CBSPublisher.prototype.renderReport = function() {
 	}
 	this.renderSecondLevelComps(id, false);
 	this.buildSecondLevelTabs("0", 0);// second level - tabs
-	this.calcCompsSize();// adjust the components size
 
 	closeCbsWaitMessage();
 }
@@ -1119,36 +1001,27 @@ CBSPublisher.prototype.doesGridContainDataColumns = function(gridColumns) {
 	return dataColumnExists;
 }
 
-//CBSPublisher.prototype.getHtmlForNormalForm = function() {
-//	var html = "<table style='font-size:12px;'><tr>";// put data in 1 row
-//	for (var i = 0; i < this.normalFormLevel_0.length; i++) {
-//		html = html + "<td>" + this.normalFormLevel_0[i].label + ":&nbsp;&nbsp;&nbsp;</td><td><b>" + this.normalFormLevel_0[i].data + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</b></td>";
-//	}
-//	html += "</tr></table>";
-//	return html;
-//}
-
 CBSPublisher.prototype.getHtmlForNormalForm = function() {
 	var html = "<table style='font-size:12px; border-spacing: 3 !important;' width='100%'>";// put data in several rows, 3 columns
-	for (var i = 0; i < this.normalFormLevel_0.length/3; i++) {
-		var tableRowTmpl = "<td width='10%' class='label_bold'>{0}</td><td width='23.33%' class='label_normal'>{1}</td>";
+	for (var i = 0; i < this.normalFormLevel_0.length; i++) {
+		var tableRowTmpl = "<td width='15%' class='label_bold'>{0}</td><td width='18.33%' class='label_normal'>{1}</td>";
 		
 		var tableRow = null;
 		if(this.normalFormLevel_0[i].label != null && Ext.String.trim(this.normalFormLevel_0[i].label).length > 0)
 			tableRow = Ext.String.format(tableRowTmpl, this.normalFormLevel_0[i].label, this.normalFormLevel_0[i].data);
 		else
-			tableRow += Ext.String.format(tableRowTmpl, "", "");
-		
-		if ((i + 1) < this.normalFormLevel_0.length && this.normalFormLevel_0[i+1].label != null)
-			tableRow += Ext.String.format(tableRowTmpl, this.normalFormLevel_0[++i].label, this.normalFormLevel_0[i].data);
+			tableRow = Ext.String.format(tableRowTmpl, "", "");
+		i++;
+		if (i < this.normalFormLevel_0.length && this.normalFormLevel_0[i].label != null)
+			tableRow += Ext.String.format(tableRowTmpl, this.normalFormLevel_0[i].label, this.normalFormLevel_0[i].data);
 		else
 			tableRow += Ext.String.format(tableRowTmpl, "", "");
-		
-		if ((i + 1) < this.normalFormLevel_0.length && this.normalFormLevel_0[i+1].label != null)
-			tableRow += Ext.String.format(tableRowTmpl, this.normalFormLevel_0[++i].label, this.normalFormLevel_0[i].data);
+		i++;
+		if (i < this.normalFormLevel_0.length && this.normalFormLevel_0[i].label != null)
+			tableRow += Ext.String.format(tableRowTmpl, this.normalFormLevel_0[i].label, this.normalFormLevel_0[i].data);
 		else
 			tableRow += Ext.String.format(tableRowTmpl, "", "");
-		
+
 		if (tableRow !== null)
 			html = html + "<tr>" + tableRow + "</tr>";
 	}
@@ -1161,62 +1034,63 @@ CBSPublisher.prototype.getHtmlForCollapsedForm = function() {
 	for (var i = 0; i < this.collapsedFormLevel_0.length; i++) {
 		var tableRowTmpl = "<td class='label_bold'>{0}</td><td class='label_normal'>{1}</td>";
 		
+		
 		var tableRow = null;
-		if(this.collapsedFormLevel_0[i].label != null)
+		if(this.collapsedFormLevel_0[i].label != null && Ext.String.trim(this.collapsedFormLevel_0[i].label).length > 0)
 			tableRow = Ext.String.format(tableRowTmpl, this.collapsedFormLevel_0[i].label, this.collapsedFormLevel_0[i].data);
-		if ((i + 1) < this.collapsedFormLevel_0.length && this.collapsedFormLevel_0[i+1].label != null)
-			tableRow += Ext.String.format(tableRowTmpl, this.collapsedFormLevel_0[++i].label, this.collapsedFormLevel_0[i].data);
-		if ((i + 1) < this.collapsedFormLevel_0.length && this.collapsedFormLevel_0[i+1].label != null)
-			tableRow += Ext.String.format(tableRowTmpl, this.collapsedFormLevel_0[++i].label, this.collapsedFormLevel_0[i].data);
-		if ((i + 1) < this.collapsedFormLevel_0.length && this.collapsedFormLevel_0[i+1].label != null)
-			tableRow += Ext.String.format(tableRowTmpl, this.collapsedFormLevel_0[++i].label, this.collapsedFormLevel_0[i].data);
-		if ((i + 1) < this.collapsedFormLevel_0.length && this.collapsedFormLevel_0[i+1].label != null)
-			tableRow += Ext.String.format(tableRowTmpl, this.collapsedFormLevel_0[++i].label, this.collapsedFormLevel_0[i].data);
-		if ((i + 1) < this.collapsedFormLevel_0.length && this.collapsedFormLevel_0[i+1].label != null)
-			tableRow += Ext.String.format(tableRowTmpl, this.collapsedFormLevel_0[++i].label, this.collapsedFormLevel_0[i].data);
+		else
+			tableRow = Ext.String.format(tableRowTmpl, "", "");
 		i++;
+		
+		if (i < this.collapsedFormLevel_0.length && this.collapsedFormLevel_0[i].label != null)
+			tableRow += Ext.String.format(tableRowTmpl, this.collapsedFormLevel_0[i].label, this.collapsedFormLevel_0[i].data);
+		else
+			tableRow += Ext.String.format(tableRowTmpl, "", "");
+		i++;
+		
+		if (i < this.collapsedFormLevel_0.length && this.collapsedFormLevel_0[i].label != null)
+			tableRow += Ext.String.format(tableRowTmpl, this.collapsedFormLevel_0[i].label, this.collapsedFormLevel_0[i].data);
+		else
+			tableRow += Ext.String.format(tableRowTmpl, "", "");
+		i++;
+		
+		if (i < this.collapsedFormLevel_0.length && this.collapsedFormLevel_0[i].label != null)
+			tableRow += Ext.String.format(tableRowTmpl, this.collapsedFormLevel_0[i].label, this.collapsedFormLevel_0[i].data);
+		else
+			tableRow += Ext.String.format(tableRowTmpl, "", "");
+		i++;
+		
+		if (i < this.collapsedFormLevel_0.length && this.collapsedFormLevel_0[i].label != null)
+			tableRow += Ext.String.format(tableRowTmpl, this.collapsedFormLevel_0[i].label, this.collapsedFormLevel_0[i].data);
+		else
+			tableRow += Ext.String.format(tableRowTmpl, "", "");
+		i++;
+		
+		if (i < this.collapsedFormLevel_0.length && this.collapsedFormLevel_0[i].label != null)
+			tableRow += Ext.String.format(tableRowTmpl, this.collapsedFormLevel_0[i].label, this.collapsedFormLevel_0[i].data);
+		else
+			tableRow += Ext.String.format(tableRowTmpl, "", "");
+		
+//		var tableRow = null;
+//		if(this.collapsedFormLevel_0[i].label != null)
+//			tableRow = Ext.String.format(tableRowTmpl, this.collapsedFormLevel_0[i].label, this.collapsedFormLevel_0[i].data);
+//		if ((i + 1) < this.collapsedFormLevel_0.length && this.collapsedFormLevel_0[i+1].label != null)
+//			tableRow += Ext.String.format(tableRowTmpl, this.collapsedFormLevel_0[++i].label, this.collapsedFormLevel_0[i].data);
+//		if ((i + 1) < this.collapsedFormLevel_0.length && this.collapsedFormLevel_0[i+1].label != null)
+//			tableRow += Ext.String.format(tableRowTmpl, this.collapsedFormLevel_0[++i].label, this.collapsedFormLevel_0[i].data);
+//		if ((i + 1) < this.collapsedFormLevel_0.length && this.collapsedFormLevel_0[i+1].label != null)
+//			tableRow += Ext.String.format(tableRowTmpl, this.collapsedFormLevel_0[++i].label, this.collapsedFormLevel_0[i].data);
+//		if ((i + 1) < this.collapsedFormLevel_0.length && this.collapsedFormLevel_0[i+1].label != null)
+//			tableRow += Ext.String.format(tableRowTmpl, this.collapsedFormLevel_0[++i].label, this.collapsedFormLevel_0[i].data);
+//		if ((i + 1) < this.collapsedFormLevel_0.length && this.collapsedFormLevel_0[i+1].label != null)
+//			tableRow += Ext.String.format(tableRowTmpl, this.collapsedFormLevel_0[++i].label, this.collapsedFormLevel_0[i].data);
+//		i++;
 			
 		if (tableRow !== null)
 			html = html + "<tr>" + tableRow + "</tr>";
 	}
 	html += "</table>";
 	return html;
-}
-
-CBSPublisher.prototype.optimizeColumnsSize = function(gridColumns, totalWidth) {
-	console.log(totalWidth);
-	// first, make the largest column flex=1
-	var largestColumn = {index: 0, width: 0};
-	for (var i = 0; i < gridColumns.length; i++) {
-		if (parseInt(gridColumns[i].widthToCalc) > parseInt(largestColumn.width)) {
-			largestColumn.width = gridColumns[i].widthToCalc;
-			largestColumn.index = i;
-		}
-	}
-	gridColumns[ largestColumn.index ].flex = 1;
-	
-	// calculate the sizes (in %) of visible columns using "widthToCalc" values
-	var visibleColumnsWidthToCalc = 0;
-	var visibleColumnsWidth;
-	if(totalWidth == null)
-		visibleColumnsWidth = this.mainTreeGridWidth;
-	else
-		visibleColumnsWidth = totalWidth;
-	for (var i = 0; i < gridColumns.length; i++) {
-		if (gridColumns[i].hidden !== true) {
-			if (gridColumns[i].widthToCalc)
-				visibleColumnsWidthToCalc = visibleColumnsWidthToCalc + parseInt( gridColumns[i].widthToCalc );
-			else
-				visibleColumnsWidth = visibleColumnsWidth - gridColumns[i].width;
-		}
-	}
-
-	for (var i = 0; i < gridColumns.length; i++) {
-		if (gridColumns[i].hidden !== true && gridColumns[i].widthToCalc)
-			gridColumns[i].width = visibleColumnsWidth * gridColumns[i].widthToCalc / visibleColumnsWidthToCalc;
-	}
-	
-	return gridColumns;
 }
 
 CBSPublisher.prototype.gridTreeClickAction = function(event, record) {
@@ -1313,6 +1187,11 @@ CBSPublisher.prototype.showTreeGridContextMenu = function(nextScreenIconDef, pre
 	    		    		 dataQuerySettings.lng = cbs_publisher_instance.cbsWsSettings.lng;
 	    		    		 dataQuerySettings.cmd = dqMenuParams.cmd;
 	    		    		 
+	    		    		 //Code added by Jad. Apparently it works without this 
+//	    		    		 dataQuerySettings.id = dqMenuParams.id;
+//	    		    		 dataQuerySettings.fromNumber = dqMenuParams.fromNumber;
+//	    		    		 dataQuerySettings.toNumber = dqMenuParams.toNumber;
+	    		    		 
 	    		    		 cbs_publisher_instance.executeDataQueryContextMenuItem(dqMenuParams.dataQueryName, dataQuerySettings);
 	    		    	 }
 	    		     }
@@ -1342,6 +1221,13 @@ CBSPublisher.prototype.showTreeGridContextMenu = function(nextScreenIconDef, pre
 			dqMenuParams.confirmMessage = wsParamsArray[5];
 			dqMenuParams.dataQueryName = wsParamsArray[6];
 			dqMenuParams.cmd = wsParamsArray[7];
+			console.log("complete: " + wsParamsArray[7].split(','));
+			//Code added by Jad. Apparently it works without this
+//			var params = wsParamsArray[7].split(',');
+//			dqMenuParams.cmd = params[0];
+//			dqMenuParams.id = params[2];
+//			dqMenuParams.fromNumber = params[4];
+//			dqMenuParams.toNumber = params[6];
 			
 			items.push( buildDataQueryCallItem(dqMenuParams) );
 		}
@@ -1358,12 +1244,12 @@ CBSPublisher.prototype.executeDataQueryContextMenuItem = function(dataQueryName,
 	
 	var dq = new DataQuery(dataQueryName);
 	dq.setParameters(dataQuerySettings);
-	
 	dq.execute(null, function(dataSet) {
 		var buffer = dataSet.getData();
 		
 		if (buffer) {
 			var answerAck = ( buffer[0] ) ? buffer[0].data[0].answerAck : buffer.data[0].answerAck;
+			console.log("answerAck: " + answerAck);
 			if (answerAck === "ok") {
 				cbs_publisher_instance.cbsWsSettings.newScreen = false;
 				//TODO: for the future - add param to know that ONLY tree/grid must be refreshed,
@@ -1480,7 +1366,6 @@ CBSPublisher.prototype.refreshReport = function() {
 	}
 	this.renderSecondLevelComps(id, false);
 	
-	this.calcCompsSize();// adjust the components size
 	closeCbsWaitMessage();
 }
 
@@ -1498,7 +1383,6 @@ CBSPublisher.prototype.renderSecondLevelComps = function(parentIndex, onlyTabs) 
 	if(onlyTabs != true)
 		this.buildSecondLevelCharts(2, parentIndex);
 	
-	this.calcCompsSize();// adjust the components size
 	
 	// scroll to selected row in the first level grid
 	var mainTreeGrid = (this.isItTree) ? this.reportPanel.getComponent(this.gridTreeAndChartsId).getComponent(this.mainTreeId) : 
@@ -1560,16 +1444,34 @@ CBSPublisher.prototype.buildSecondLevelTabs = function(treeIndex, parentIndex) {
 					var html = "<table style='font-size:12px;' width='100%'>";// put data in several rows, 3 columns
 					var currTabAllData = this.gridsOrFormsLevel_2["formData_" + treeIndex + tabIndex];
 					if (currTabAllData) {
-						var tableRowTmpl = "<td>{0}</td><td><b>{1}</b></td>";
-						
+						var tableRowTmpl = "<td width='15%' class='label_bold'>{0}</td><td class='label_normal' width='18.33%'>{1}</td>";
+												
 						for (var i = 0; i < currTabAllData.length; i++) {
 							if (currTabAllData[i] && (currTabAllData[i].parentIndex == parentIndex)) {
+								
 								var tableRow = null;
-								tableRow = Ext.String.format(tableRowTmpl, currTabAllData[i].label, currTabAllData[i].data);
-								if ((i + 1) < currTabAllData.length)
-									tableRow += Ext.String.format(tableRowTmpl, currTabAllData[++i].label, currTabAllData[i].data);
-								if ((i + 1) < currTabAllData.length)
-									tableRow += Ext.String.format(tableRowTmpl, currTabAllData[++i].label, currTabAllData[i].data);
+								if(currTabAllData[i].label != null && Ext.String.trim(currTabAllData[i].label).length > 0)
+									tableRow = Ext.String.format(tableRowTmpl, currTabAllData[i].label, currTabAllData[i].data);
+								else
+									tableRow = Ext.String.format(tableRowTmpl, "", "");
+								i++;
+								
+								if (i < currTabAllData.length && currTabAllData[i].label != null)
+									tableRow += Ext.String.format(tableRowTmpl, currTabAllData[i].label, currTabAllData[i].data);
+								else
+									tableRow += Ext.String.format(tableRowTmpl, "", "");
+								i++;
+								
+								if (i < currTabAllData.length && currTabAllData[i].label != null)
+									tableRow += Ext.String.format(tableRowTmpl, currTabAllData[i].label, currTabAllData[i].data);
+								else
+									tableRow += Ext.String.format(tableRowTmpl, "", "");
+//								var tableRow = null;
+//								tableRow = Ext.String.format(tableRowTmpl, currTabAllData[i].label, currTabAllData[i].data);
+//								if ((i + 1) < currTabAllData.length)
+//									tableRow += Ext.String.format(tableRowTmpl, currTabAllData[++i].label, currTabAllData[i].data);
+//								if ((i + 1) < currTabAllData.length)
+//									tableRow += Ext.String.format(tableRowTmpl, currTabAllData[++i].label, currTabAllData[i].data);
 									
 								if (tableRow !== null)
 									html = html + "<tr>" + tableRow + "</tr>";
@@ -1672,11 +1574,9 @@ CBSPublisher.prototype.buildSecondLevelCharts = function(levelIndex, parentIndex
 		if (chartsContainer.isHidden()) {
 //			mainTreeGrid.setWidth(this.maxWidgetWidth * 6.5/10);
 //			mainTreeGrid.setHeight(this.maxWidgetHeight * 6/10);
-//			this.calcCollapsedFormAndChartsSize(true);
 			chartsContainer.setVisible(true);
 		}
 	}
-	this.calcCompsSize();
 }
 
 CBSPublisher.prototype.buildCharts = function(levelIndex, parentIndex) {
@@ -2177,20 +2077,27 @@ CBSPublisher.prototype.addBreadCrumbCSS = function() {
 	css.innerHTML += ".cbs_publisher_breadcrumbText::before {content:''; position: absolute;" +
 			"top: 50%; margin-top: -1.5em; border-width: 1.5em 0 1.5em 1em;" +
 			"border-style: solid; border-color: #7394B5 #7394B5 #7394B5 transparent; left: -1em}";
-//	css.innerHTML += ".breadcrumbText:hover::before {border-color: #d78932 #d78932 #d78932 transparent;}";
 	css.innerHTML += ".cbs_publisher_breadcrumbText::after {content: ''; position: absolute; top: 50%;" +
 			"margin-top: -1.5em; border-top: 1.5em solid transparent; " +
 			"border-bottom: 1.5em solid transparent; border-left: 1em solid #9CB5CE; right: -1em;}";
-//	css.innerHTML += ".breadcrumbText:hover::after{border-left-color: #d78932;}";
 	css.innerHTML += ".cbs_publisher_current::after{content: normal;}";
 	css.innerHTML += ".cbs_publisher_current::before{border-color: #d78932 #d78932 #d78932 transparent;}";
 	css.innerHTML += ".cbs_publisher_current{border-top-right-radius: 2px; border-bottom-right-radius: 2px;" +
 			"background: #d78932 !important;}";
 	css.innerHTML += ".cbs_publisher_current:hover {color: white !important; cursor: default}";
-//	css.innerHTML += ".current, .current:hover{font-weight: bold; background: none; color: #444;}";
-//	css.innerHTML += ".current::after, .current::before{content: normal;}";
 	css.innerHTML += ".cbs_publisher_first::before{content:normal;border-top-right-radius: 2px; border-bottom-right-radius: 2px;}";
 	css.innerHTML += ".cbs_publisher_breadcrumbLink:hover {cursor:pointer}";
+	
+	css.innerHTML += ".x-grid-cell-inner {margin-top:11px;margin-bottom:11px;}";
+//	css.innerHTML += ".x-grid-cell {border-style:solid !important;border-width:1px !important}";
+	css.innerHTML += ".x-tree-elbow-plus {position:relative;left:10px;background-image:none !important;z-index:1}";
+	css.innerHTML += ".x-tree-elbow-end-plus {position:relative;left:10px;background-image:none !important;z-index:1}";
+	css.innerHTML += ".x-tree-icon-parent {background-image:url('images/studio/bullet/dfs_tree_plus.gif');}";
+	css.innerHTML += ".x-tree-icon-leaf {background-image:url('images/studio/bullet/dfs_tree_minus.gif');}";
+	css.innerHTML += ".x-grid-tree-node-expanded .x-tree-icon-parent {background-image:url('images/studio/bullet/dfs_tree_minus.gif') !important;}";
+	css.innerHTML += ".x-tree-icon {position:relative;left:-5px;}";
+//	css.innerHTML += ".x-tree-elbow-line, .x-tree-elbow-end, .x-tree-elbow-empty {cursor:auto !important;}";
+	
 	document.body.appendChild(css);
 }
 
