@@ -294,7 +294,6 @@ CBSPublisher.prototype.buildReport = function(isCalledExternally) {
 	
 	var dq = (isCalledExternally === true) ? new DataQuery(this.DATA_QUERY_NAME) : new DataQuery(this.PUBLISHER_DATA_QUERY_NAME);
 	dq.setParameters(this.cbsWsSettings);
-	console.log(dq);
 	
 	dq.execute(null, function(dataSet) {
 		var buffer = dataSet.getData();
@@ -417,6 +416,7 @@ CBSPublisher.prototype.parseItem = function(item, index) {
         colDef.align = (item.c03 === "double") ? "right" : "left";
         colDef.widthToCalc = item.c05;
         colDef.resizable = true;
+        colDef.height = 46;
 //        colDef.flex = 1;
 
         this.gridColumns.push(colDef);
@@ -1631,9 +1631,16 @@ CBSPublisher.prototype.buildPieChart = function(chartDef) {
 	    data: data
 	});
 	
+	//Making the pie chart a bit smaller because it was too big
+	var size = cbs_publisher_instance.calcCompsInitialSize().firstLevelChartsMaxHeight;
+	var margin = size * 15/100;
+//	var margintxt = margin + " 0 " + margin + " 0";
+	console.log(margin);
+	
 	var pieChart = {
 		itemId: chartDef.itemId,
-		title: chartDef.series[0].c01,
+//		title: chartDef.series[0].c01,
+		title: chartDef.label,
 		legend: { position: 'right' },
 		xtype: 'chart',
 		height: initialSize.treeGridMaxHeight,
@@ -1641,6 +1648,16 @@ CBSPublisher.prototype.buildPieChart = function(chartDef) {
 		animate: true,
 	    store: store,
 	    shadow: true,
+	    margin: margin,
+//	    items: [{
+//	        type  : 'text',
+//	        text  : 'Simple Title',
+//	        font  : '14px Arial',
+//	        width : 100,
+//	        height: 30,
+//	        x : 0, //the sprite x position
+//	        y : -5  //the sprite y position
+//	     }],
 	    series: [{
 	    	type: 'pie', angleField: 'data', showInLegend: true, xField: 'name', yField: yFields, title: yFields,
 	        tips: {
@@ -1817,7 +1834,6 @@ CBSPublisher.prototype.buildLineChart = function(chartDef) {
 		    axes: axes,
 		    series: series		    
 		};
-		
 		var showChartInPopup = function() {
 			cbs_publisher_instance.openChartInPopup(lineChart);
 		};
@@ -1915,7 +1931,7 @@ CBSPublisher.prototype.buildBarChart = function(chartDef) {
 	var barChart = {
 		itemId: chartDef.itemId,
 		xtype: 'chart',
-		title: chartDef.series[0].c02,
+		title: chartDef.label,
 		legend: legend,
 		height: initialSize.treeGridMaxHeight,
 		flex: 1,
@@ -2088,6 +2104,7 @@ CBSPublisher.prototype.addBreadCrumbCSS = function() {
 	css.innerHTML += ".cbs_publisher_first::before{content:normal;border-top-right-radius: 2px; border-bottom-right-radius: 2px;}";
 	css.innerHTML += ".cbs_publisher_breadcrumbLink:hover {cursor:pointer}";
 	
+	//Fixing tree row heights
 	css.innerHTML += ".x-grid-cell-inner {margin-top:11px;margin-bottom:11px;}";
 //	css.innerHTML += ".x-grid-cell {border-style:solid !important;border-width:1px !important}";
 	css.innerHTML += ".x-tree-elbow-plus {position:relative;left:10px;background-image:none !important;z-index:1}";
@@ -2096,6 +2113,9 @@ CBSPublisher.prototype.addBreadCrumbCSS = function() {
 	css.innerHTML += ".x-tree-icon-leaf {background-image:url('images/studio/bullet/dfs_tree_minus.gif');}";
 	css.innerHTML += ".x-grid-tree-node-expanded .x-tree-icon-parent {background-image:url('images/studio/bullet/dfs_tree_minus.gif') !important;}";
 	css.innerHTML += ".x-tree-icon {position:relative;left:-5px;}";
+	css.innerHTML += ".x-grid-cell {border-right-width:1 !important;border-bottom-width:1 !important;border-bottom-color:#F0F0F1 !important;}";
+	css.innerHTML += ".x-grid-cell-last {border-right-width:0 !important}";
+//	css.innerHTML += ".x-grid-row-over {border-right-width:2;color:red !important;}";
 //	css.innerHTML += ".x-tree-elbow-line, .x-tree-elbow-end, .x-tree-elbow-empty {cursor:auto !important;}";
 	
 	document.body.appendChild(css);
