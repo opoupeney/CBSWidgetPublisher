@@ -25,7 +25,7 @@
  * Widget entry point. 
  */
 function cbsWidgetPublisher(dataWidget, cbs_publisher_instance, cbsWsSettings) {
-	//console.log(dataWidget.parameters);
+	console.log(dataWidget.parameters);
 	showCbsWaitMessage();
 	
 	if (cbs_publisher_instance == undefined || cbs_publisher_instance == null) {// called externally
@@ -222,6 +222,9 @@ CBSPublisher.prototype.init = function(dataWidget, wgt_placeholder_id, cbsWsSett
 	this.contextMenuIconId = "contextMenuIcon_" + this.wgt_placeholder_id;
 	this.searchDetailsIconId = "searchDetailsIcon_" + this.wgt_placeholder_id;
 	this.gridTreeAndChartsId = "cbsPublisherGridTreeAndCharts_" + this.wgt_placeholder_id;
+	this.splitterId = "cbsPublisherSplitter_" + this.wgt_placeholder_id;
+	
+	
 	
 	return this;
 }
@@ -237,6 +240,7 @@ CBSPublisher.prototype.setPrevWgtPlaceholderInfo = function(prevPlaceholderInfo)
 
 CBSPublisher.prototype.executeFromExternalCall = function() {
 	var cbs_publisher_instance = this;
+	cbs_publisher_instance.addBreadCrumbCSS(cbs_publisher_instance);
 	
 	// PRODUCTION: init the WsSettings (and external report back link) using externally passed parameters
 	this.cbsWsSettings.usr = user.properties.cas_attr.loginShell;
@@ -276,10 +280,11 @@ CBSPublisher.prototype.executeFromExternalCall = function() {
 //	this.cbsWsSettings.sheetname = 'pk_dp_bale2.f_get_bale2rm';//14
 //	this.cbsWsSettings.sheetname = 'pk_dp_oper.f_get_operssummaryrm';//15
 //	this.cbsWsSettings.sheetname = 'pk_dp_encours.get_encours';//16
-//	this.cbsWsSettings.sheetname = 'pk_dp_depass.f_get_depassrm';
-//	this.cbsWsSettings.sheetname = 'pk_dp_oper.get_oper';
+//	this.cbsWsSettings.sheetname = 'pk_dp_depass.f_get_depassrm'; //Filtering table
+//	this.cbsWsSettings.sheetname = 'pk_dp_oper.get_oper';// - bar chart with 2 columns
 //	this.cbsWsSettings.sheetname = 'pk_dp_statoper.f_get_opersrm';
-//	this.cbsWsSettings.sheetname = 'pk_dp_demchq_tree.report';
+//	this.cbsWsSettings.sheetname = 'pk_dp_demchq_tree.report';// - drop down list for every row in the tree
+//	this.cbsWsSettings.sheetname = 'pk_dp_budget.get_budget_mrg';// - Error with the '.' and '...' in the tree
 	
 	// build the report
 	cbs_publisher_instance.buildReport(true);
@@ -324,7 +329,7 @@ CBSPublisher.prototype.buildReport = function(isCalledExternally) {
 					parseContinue = false;
 				}
 			}
-			cbs_publisher_instance.gridColumns.push({ header: "", dataIndex: "caction", width: 34, align: "center" });
+			cbs_publisher_instance.gridColumns.push({ header: "", dataIndex: "caction", width: 34, align: "center", sortable: false, hideable: false });
 			cbs_publisher_instance.gridFields_level_1.push({ name: "caction" });
 			
 			if (cbs_publisher_instance.cbsWsSettings.newScreen) {
@@ -379,11 +384,11 @@ CBSPublisher.prototype.parseItem = function(item, index) {
 		}
 		
 		// ID column - used to map the first & second levels
-		this.gridColumns.push({ header: "row_id", dataIndex: "row_id", hidden: true });
+		this.gridColumns.push({ header: "row_id", dataIndex: "row_id", hidden: true, hideable: false });
 		this.gridFields_level_1.push({ name: "row_id" });
 		
 		// add a column for the tooltip
-		this.gridColumns.push({ header: "Long Description", dataIndex: "long_descr", hidden: true });
+		this.gridColumns.push({ header: "Long Description", dataIndex: "long_descr", hidden: true, hideable: false });
 		this.gridFields_level_1.push({ name: "long_descr" });
 		
 		// add or not the icon column
@@ -416,8 +421,7 @@ CBSPublisher.prototype.parseItem = function(item, index) {
         colDef.align = (item.c03 === "double") ? "right" : "left";
         colDef.widthToCalc = item.c05;
         colDef.resizable = true;
-        colDef.height = 46;
-//        colDef.flex = 1;
+        colDef.sortable = false;
 
         this.gridColumns.push(colDef);
 		this.gridFields_level_1.push( {name: "c"+colIndex} );
@@ -684,37 +688,14 @@ CBSPublisher.prototype.calcCompsInitialSize = function() {
 }
 
 CBSPublisher.prototype.optimizeColumnsSize = function(gridColumns, totalWidth) {
-	// first, make the largest column flex=1
-	var largestColumn = {index: 0, width: 0};
-	for (var i = 0; i < gridColumns.length; i++) {
-		if (parseInt(gridColumns[i].widthToCalc) > parseInt(largestColumn.width)) {
-			largestColumn.width = gridColumns[i].widthToCalc;
-			largestColumn.index = i;
+	
+	for(var i =0; i<gridColumns.length; i++){
+		if (gridColumns[i].hidden !== true && gridColumns[i].widthToCalc){
+			var num = gridColumns[i].widthToCalc/10;
+			Math.round(num);
+			gridColumns[i].flex = num;
 		}
 	}
-	gridColumns[ largestColumn.index ].flex = 1;
-	
-	// calculate the sizes (in %) of visible columns using "widthToCalc" values
-	var visibleColumnsWidthToCalc = 0;
-	var visibleColumnsWidth;
-	if(totalWidth == null)
-		visibleColumnsWidth = this.mainTreeGridWidth;
-	else
-		visibleColumnsWidth = totalWidth;
-	for (var i = 0; i < gridColumns.length; i++) {
-		if (gridColumns[i].hidden !== true) {
-			if (gridColumns[i].widthToCalc)
-				visibleColumnsWidthToCalc = visibleColumnsWidthToCalc + parseInt( gridColumns[i].widthToCalc );
-			else
-				visibleColumnsWidth = visibleColumnsWidth - gridColumns[i].width;
-		}
-	}
-
-	for (var i = 0; i < gridColumns.length; i++) {
-		if (gridColumns[i].hidden !== true && gridColumns[i].widthToCalc)
-			gridColumns[i].width = visibleColumnsWidth * gridColumns[i].widthToCalc / visibleColumnsWidthToCalc;
-	}
-	
 	return gridColumns;
 }
 
@@ -723,25 +704,28 @@ CBSPublisher.prototype.renderReport = function() {
 	var cbs_publisher_instance = this;
 	var panel_items = new Array();
 	var initialSize = this.calcCompsInitialSize();// get the components initial size
+		
+	// main title
+	panel_items.push({
+		itemId: this.mainTitleId,
+		border: false,
+		anchor: '98.5%',
+		html: "<b><p class='label_grid_title'>" + this.reportName + "</p></b></br>"
+	});
 	
 	// back link
 	panel_items.push({
 		itemId: this.backLinkId,
 		border: false,
-		padding: '0 0 5 0',
+		margin: '0 0 20 0',
 		html: this.buildBackLinksHTML(),
 		anchor: '98.5%',
-	});
-	
-	// main title
-	panel_items.push({
-		itemId: this.mainTitleId,
-		border: false,
-		padding: {
-			bottom: 10
-		},
-		anchor: '98.5%',
-		html: "<b><p class='label_grid_title'>" + this.reportName + "</p></b></br>"
+//		border: 1,
+//		style: {
+//		    borderColor: '#D3D3D3',
+//		    borderStyle: 'solid',
+//		    borderWidth: '1px'
+//		}
 	});
 	
 	// zero level - normal form
@@ -856,6 +840,7 @@ CBSPublisher.prototype.renderReport = function() {
 	else{
 		chartsPanelDef = {
 			xtype: 'tabpanel',
+			cls: 'cbs-chart-tabpanel',
 	    	itemId: this.chartsPanelId,
 		    height: initialSize.treeGridMaxHeight,
 		    flex: 1,
@@ -863,7 +848,11 @@ CBSPublisher.prototype.renderReport = function() {
 	    	plain: true,
 	    	activeTab: 0,
 	    	tabPosition: 'bottom',
-	    	margin: '0, 0, 0, 0'
+	    	margin: '0, 0, 0, 10',
+			region: "east",
+			collapsible: true,
+			split: true,
+			collapseDirection: "right"
 		};
 	}
 	
@@ -871,7 +860,7 @@ CBSPublisher.prototype.renderReport = function() {
 	var mainTreeGridHeight;
 	if (charts.length === 0){
 		chartsPanelDef.hidden = true;
-		this.mainTreeGridWidth = initialSize.mainPanelWidth - 20; //so it doesn't go under the vertical scroll bar
+		this.mainTreeGridWidth = initialSize.mainPanelWidth; //so it doesn't go under the vertical scroll bar
 		mainTreeGridHeight = null;
 	}
 	else{
@@ -899,6 +888,8 @@ CBSPublisher.prototype.renderReport = function() {
 			height: mainTreeGridHeight,
 			useArrows: true,
 			rootVisible: false,
+			region: "center",
+			layout: "fit",
 			flex: 2,
 	    	columns: optimizedColumns,
 		    store: Ext.create("Ext.data.TreeStore", { fields: this.gridFields_level_1, root: store_def_as_json }),
@@ -937,27 +928,36 @@ CBSPublisher.prototype.renderReport = function() {
 		gridTreeAndCharts.push(mainTreeGridItem);
 //		panel_items.push(mainTreeGridItem);
 	
-	var splitter = Ext.create('Ext.resizer.Splitter', {
-		autoShow: true,
-		style: {
-		    background: '#E7E8E5',
-		    cursor: "w-resize"
-		},
-		width: 4,
-		left: 6
-	});
-	if(charts.length>0)
-		gridTreeAndCharts.push(splitter);
 	gridTreeAndCharts.push(chartsPanelDef);
+	
+//	var panel1 = {
+//			title: 'Panel1',
+//			xtype: 'panel',
+//			region: 'center',
+//			flex: 2,
+//			layout: 'fit',
+////			height: 500
+//		}
+//		
+//		var panel2 = {
+//			title: 'Panel2',
+//			xtype: 'panel',
+//			region: 'east',
+//			flex: 1,
+//			layout: 'fit',
+//			height: 500,
+//			width: 100,
+//			split: true,
+//			collapsible: true
+//		}
+	
 	
 	panel_items.push({
 		itemId: this.gridTreeAndChartsId,
 		border: false,
 		anchor: '98.5%',
 		padding: '0 0 10 0',
-		layout: {
-    	    type: "hbox"
-		},
+		layout: 'hbox',
     	items: gridTreeAndCharts
 	});
 	
@@ -984,7 +984,7 @@ CBSPublisher.prototype.renderReport = function() {
 			i=this.gridData_level_1.length;
 		}
 	}
-	this.renderSecondLevelComps(id, false);
+	this.renderSecondLevelComps(id, false, true);
 	this.buildSecondLevelTabs("0", 0);// second level - tabs
 
 	closeCbsWaitMessage();
@@ -1221,7 +1221,6 @@ CBSPublisher.prototype.showTreeGridContextMenu = function(nextScreenIconDef, pre
 			dqMenuParams.confirmMessage = wsParamsArray[5];
 			dqMenuParams.dataQueryName = wsParamsArray[6];
 			dqMenuParams.cmd = wsParamsArray[7];
-			console.log("complete: " + wsParamsArray[7].split(','));
 			//Code added by Jad. Apparently it works without this
 //			var params = wsParamsArray[7].split(',');
 //			dqMenuParams.cmd = params[0];
@@ -1249,7 +1248,6 @@ CBSPublisher.prototype.executeDataQueryContextMenuItem = function(dataQueryName,
 		
 		if (buffer) {
 			var answerAck = ( buffer[0] ) ? buffer[0].data[0].answerAck : buffer.data[0].answerAck;
-			console.log("answerAck: " + answerAck);
 			if (answerAck === "ok") {
 				cbs_publisher_instance.cbsWsSettings.newScreen = false;
 				//TODO: for the future - add param to know that ONLY tree/grid must be refreshed,
@@ -1364,7 +1362,7 @@ CBSPublisher.prototype.refreshReport = function() {
 			i=this.gridData_level_1.length;
 		}
 	}
-	this.renderSecondLevelComps(id, false);
+	this.renderSecondLevelComps(id, false, true);
 	
 	closeCbsWaitMessage();
 }
@@ -1372,7 +1370,7 @@ CBSPublisher.prototype.refreshReport = function() {
 /*
  * Create Tab with second level nested grids. Must be invoked by clicking on the row in the first level grid.
  */
-CBSPublisher.prototype.renderSecondLevelComps = function(parentIndex, onlyTabs) {
+CBSPublisher.prototype.renderSecondLevelComps = function(parentIndex, onlyTabs, firstTime) {
 	// build tabs of the second level
 	for (var i = 0; i < this.POSSIBLE_TREE_LEVELS.length; i++) {
 		if (this.POSSIBLE_TREE_LEVELS[i] !== "0" && this.buildSecondLevelTabs(this.POSSIBLE_TREE_LEVELS[i], parentIndex))
@@ -1381,7 +1379,7 @@ CBSPublisher.prototype.renderSecondLevelComps = function(parentIndex, onlyTabs) 
 	
 	// build charts of the second level
 	if(onlyTabs != true)
-		this.buildSecondLevelCharts(2, parentIndex);
+		this.buildSecondLevelCharts(2, parentIndex, firstTime);
 	
 	
 	// scroll to selected row in the first level grid
@@ -1418,6 +1416,7 @@ CBSPublisher.prototype.buildSecondLevelTabs = function(treeIndex, parentIndex) {
 						}
 					}
 					
+					
 					var item = {
 						title: this.gridsOrFormsLevel_2["reportName_" + treeIndex + tabIndex],
 						itemId: tabIdPrefix + '_' + treeIndex + tabIndex,
@@ -1432,10 +1431,13 @@ CBSPublisher.prototype.buildSecondLevelTabs = function(treeIndex, parentIndex) {
 	        	    	}
 		    		};
 					if (gridData.length === 0) {
-						item.viewConfig = {
-							emptyText: this.NO_DATA_MESSAGE,
-					        deferEmptyText: false
-						};
+						item.xtype = "text";
+						item.html = "<div>" + this.NO_DATA_MESSAGE + "</div>";
+						item.text = this.NO_DATA_MESSAGE;
+//						item.viewConfig = {
+//							emptyText: this.NO_DATA_MESSAGE,
+//					        deferEmptyText: false
+//						};
 					}
 					if ( this.doesGridContainDataColumns(this.gridsOrFormsLevel_2["gridColumns_" + treeIndex + tabIndex]) )// not only system columns
 						items.push(item);
@@ -1546,7 +1548,7 @@ CBSPublisher.prototype.buildSecondLevelTabs = function(treeIndex, parentIndex) {
 	}
 }
 
-CBSPublisher.prototype.buildSecondLevelCharts = function(levelIndex, parentIndex) {
+CBSPublisher.prototype.buildSecondLevelCharts = function(levelIndex, parentIndex, firstTime) {
 	var chartIdPrefix = "cbsSecondLevelChartIdPrefix_" + this.wgt_placeholder_id;
 	
 	var charts = this.buildCharts(levelIndex, parentIndex);
@@ -1568,7 +1570,8 @@ CBSPublisher.prototype.buildSecondLevelCharts = function(levelIndex, parentIndex
 			var chartLevel_2 = charts[i];
 			chartLevel_2.itemId = chartIdPrefix + '_' + i;
 			chartsContainer.add(chartLevel_2);
-			chartsContainer.setActiveTab( chartsContainer.getComponent(chartLevel_2.itemId) );
+			if(firstTime != true || chartsNumber == 0)
+				chartsContainer.setActiveTab( chartsContainer.getComponent(chartLevel_2.itemId) );
 		}
 		
 		if (chartsContainer.isHidden()) {
@@ -1635,7 +1638,6 @@ CBSPublisher.prototype.buildPieChart = function(chartDef) {
 	var size = cbs_publisher_instance.calcCompsInitialSize().firstLevelChartsMaxHeight;
 	var margin = size * 15/100;
 //	var margintxt = margin + " 0 " + margin + " 0";
-	console.log(margin);
 	
 	var pieChart = {
 		itemId: chartDef.itemId,
@@ -1897,9 +1899,9 @@ CBSPublisher.prototype.buildBarChart = function(chartDef) {
 	        		this.setTitle(storeItem.get('name') + ': ' + Ext.util.Format.number(item.value[1], '0,0.00'));
 	        	}
 	        },
-	        style: {
-	        	width: 80
-	        },
+//	        style: {
+//	        	width: 80
+//	        },
 	        xField: xFields,
 	        yField: yFields
 	    }];
@@ -2044,16 +2046,20 @@ CBSPublisher.prototype.buildErrorMessageBox = function() {
 CBSPublisher.prototype.buildBackLinksHTML = function() {
 	var cbs_publisher_instance = this;
 	var backLinksHTML = '';
-	this.addBreadCrumbCSS();
+	if(this.prev_wgt_placeholder_info.IDs.length > 0)
+		backLinksHTML = "<div class='cbs_publisher_breadcrumbContainer'>";
+	else
+		backLinksHTML = "<div>";
+//	this.addBreadCrumbCSS(cbs_publisher_instance);
 	
 	var addBackLink = function(placeholderId, reportName, stepNumber, currentStep) {
 		var stepId = Math.uuid(10, 10) + '_' + stepNumber;
 		
 		var stepHTML = '';
 		if (currentStep === true)
-			stepHTML = "<span class=\"cbs_publisher_breadcrumbText cbs_publisher_current\">" + reportName + "</span>";
+			stepHTML = "<span class=\"cbs_publisher_breadcrumbText cbs_publisher_breadcrumbCurrent\">" + reportName + "</span>";
 		else if(stepNumber == 0){
-			stepHTML = "<span id=\"" + stepId + "\" class=\"cbs_publisher_breadcrumbText cbs_publisher_breadcrumbLink cbs_publisher_first\">" + reportName + "</span>";
+			stepHTML = "<span id=\"" + stepId + "\" class=\"cbs_publisher_breadcrumbText cbs_publisher_breadcrumbLink cbs_publisher_breadcrumbFirst\">" + reportName + "</span>";
 //					"<img src=\"" + cbs_publisher_instance.IMAGES_URL + "breadcrumb.png\" class=\"breadcrumbSeparator\" />";
 		}
 		else
@@ -2077,40 +2083,55 @@ CBSPublisher.prototype.buildBackLinksHTML = function() {
 	
 	if (this.prev_wgt_placeholder_info.IDs.length > 0)// add a 'current/last' step icon (not clickable)
 		backLinksHTML = backLinksHTML + addBackLink(null, this.prev_wgt_placeholder_info.repTitles[this.prev_wgt_placeholder_info.IDs.length], this.prev_wgt_placeholder_info.IDs.length, true);
-	
+	backLinksHTML += "</div>";
 	return backLinksHTML;
 }
 
-CBSPublisher.prototype.addBreadCrumbCSS = function() {
+CBSPublisher.prototype.addBreadCrumbCSS = function(cbs_publisher_instance) {
 	var css = document.createElement("style");
+	var size = cbs_publisher_instance.calcCompsInitialSize().treeGridMaxHeight;
+	
 	css.type = "text/css";
-	css.innerHTML += ".cbs_publisher_breadcrumbText { float: left; margin: 0 .5em 0 1em;}";
-	css.innerHTML += ".cbs_publisher_breadcrumbText {background-image: -webkit-linear-gradient(left, #7394B5 0%, #9CB5CE 100%);" +
-			" float: left; padding: 0 .5em 0 .5em;" +
-			" text-decoration: none; color: white; text-shadow: 0 1px 0 rgba(255,255,255,.5);" +
-			"position: relative;}";
-	css.innerHTML += ".cbs_publisher_breadcrumbText:hover {color: #d78932}";
-	css.innerHTML += ".cbs_publisher_breadcrumbText::before {content:''; position: absolute;" +
-			"top: 50%; margin-top: -1.5em; border-width: 1.5em 0 1.5em 1em;" +
-			"border-style: solid; border-color: #7394B5 #7394B5 #7394B5 transparent; left: -1em}";
-	css.innerHTML += ".cbs_publisher_breadcrumbText::after {content: ''; position: absolute; top: 50%;" +
-			"margin-top: -1.5em; border-top: 1.5em solid transparent; " +
-			"border-bottom: 1.5em solid transparent; border-left: 1em solid #9CB5CE; right: -1em;}";
-	css.innerHTML += ".cbs_publisher_current::after{content: normal;}";
-	css.innerHTML += ".cbs_publisher_current::before{border-color: #d78932 #d78932 #d78932 transparent;}";
-	css.innerHTML += ".cbs_publisher_current{border-top-right-radius: 2px; border-bottom-right-radius: 2px;" +
-			"background: #d78932 !important;}";
-	css.innerHTML += ".cbs_publisher_current:hover {color: white !important; cursor: default}";
-	css.innerHTML += ".cbs_publisher_first::before{content:normal;border-top-right-radius: 2px; border-bottom-right-radius: 2px;}";
-	css.innerHTML += ".cbs_publisher_breadcrumbLink:hover {cursor:pointer}";
+	css.innerHTML += ".cbs_publisher_breadcrumbText {text-decoration:none;outline;none;display:block;float:left;font-size:12px;" +
+			"line-height:24px;background-color:white;padding: 0 30px;}";
+	css.innerHTML += ".cbs_publisher_breadcrumbText:after {content:'';position:absolute;width:24px;height:25px;border-right:1px solid #d3d3d3;" +
+			"-webkit-transform:rotate(45deg) scale(0.707);-ms-transform:rotate(45deg) scale(0.707);transform:rotate(45deg) scale(0.707);" +
+			"border-top:1px solid #d3d3d3;z-index:1;background-color:white;}";
+	css.innerHTML += ".cbs_publisher_breadcrumbCurrent:after {content:none;}";
+	css.innerHTML += ".cbs_publisher_breadcrumbCurrent {border-right:1px solid #d3d3d3; background-color:	#ce6c00; color:white;}";
+	css.innerHTML += ".cbs_publisher_breadcrumbFirst {padding-left:20px !important;padding-right: 12px !important;}";
+	css.innerHTML += ".cbs_publisher_breadcrumbText:hover{background-color:#ce6c00;color:white;cursor:pointer;}";
+	css.innerHTML += ".cbs_publisher_breadcrumbCurrent:hover {cursor: default !important;}";
+	css.innerHTML += ".cbs_publisher_breadcrumbText:hover:after {background-color:#ce6c00;cursor:pointer;}";
+	css.innerHTML += ".cbs_publisher_breadcrumbContainer {border-top:1px solid #d3d3d3;border-bottom:1px solid #d3d3d3;height:26px}";
+//	css.innerHTML += ".cbs_publisher_breadcrumbText { float: left; margin: 0 .5em 0 1em;}";
+//	css.innerHTML += ".cbs_publisher_breadcrumbText {background-image: -webkit-linear-gradient(left, #7394B5 0%, #9CB5CE 100%);" +
+//			" float: left; padding: 0 .5em 0 .5em;" +
+//			" text-decoration: none; color: white; text-shadow: 0 1px 0 rgba(255,255,255,.5);" +
+//			"position: relative;}";
+//	css.innerHTML += ".cbs_publisher_breadcrumbText:hover {color: #d78932}";
+//	css.innerHTML += ".cbs_publisher_breadcrumbText::before {content:''; position: absolute;" +
+//			"top: 50%; margin-top: -1.5em; border-width: 1.5em 0 1.5em 1em;" +
+//			"border-style: solid; border-color: #7394B5 #7394B5 #7394B5 transparent; left: -1em}";
+//	css.innerHTML += ".cbs_publisher_breadcrumbText::after {content: ''; position: absolute; top: 50%;" +
+//			"margin-top: -1.5em; border-top: 1.5em solid transparent; " +
+//			"border-bottom: 1.5em solid transparent; border-left: 1em solid #9CB5CE; right: -1em;}";
+//	css.innerHTML += ".cbs_publisher_breadcrumbCurrent::after{content: normal;}";
+//	css.innerHTML += ".cbs_publisher_breadcrumbCurrent::before{border-color: #d78932 #d78932 #d78932 transparent;}";
+//	css.innerHTML += ".cbs_publisher_breadcrumbCurrent{border-top-right-radius: 2px; border-bottom-right-radius: 2px;" +
+//			"background: #d78932 !important;}";
+//	css.innerHTML += ".cbs_publisher_breadcrumbCurrent:hover {color: white !important; cursor: default}";
+//	css.innerHTML += ".cbs_publisher_breadcrumbFirst::before{content:normal;border-top-right-radius: 2px; border-bottom-right-radius: 2px;}";
+//	css.innerHTML += ".cbs_publisher_breadcrumbLink:hover {cursor:pointer}";
 	
 	//Fixing tree row heights
-	css.innerHTML += ".x-grid-cell-inner {margin-top:11px;margin-bottom:11px;}";
+//	css.innerHTML += ".x-grid-cell-inner {margin-top:11px;margin-bottom:11px;}";
 //	css.innerHTML += ".x-grid-cell {border-style:solid !important;border-width:1px !important}";
 	css.innerHTML += ".x-tree-elbow-plus {position:relative;left:10px;background-image:none !important;z-index:1}";
 	css.innerHTML += ".x-tree-elbow-end-plus {position:relative;left:10px;background-image:none !important;z-index:1}";
 	css.innerHTML += ".x-tree-icon-parent {background-image:url('images/studio/bullet/dfs_tree_plus.gif');}";
-	css.innerHTML += ".x-tree-icon-leaf {background-image:url('images/studio/bullet/dfs_tree_minus.gif');}";
+//	css.innerHTML += ".x-tree-icon-leaf {background-image:url('images/studio/bullet/dfs_tree_minus.gif');}";
+	css.innerHTML += ".x-tree-icon-leaf {background-image: none;}";
 	css.innerHTML += ".x-grid-tree-node-expanded .x-tree-icon-parent {background-image:url('images/studio/bullet/dfs_tree_minus.gif') !important;}";
 	css.innerHTML += ".x-tree-icon {position:relative;left:-5px;}";
 	css.innerHTML += ".x-grid-cell {border-right-width:1 !important;border-bottom-width:1 !important;border-bottom-color:#F0F0F1 !important;}";
@@ -2118,7 +2139,20 @@ CBSPublisher.prototype.addBreadCrumbCSS = function() {
 //	css.innerHTML += ".x-grid-row-over {border-right-width:2;color:red !important;}";
 //	css.innerHTML += ".x-tree-elbow-line, .x-tree-elbow-end, .x-tree-elbow-empty {cursor:auto !important;}";
 	
+//	css.innerHTML += ".cbs-chart-tabpanel {overflow:visible;}";
+	css.innerHTML += ".cbs-chart-tabpanel .x-header {border:none;background-color:transparent}";
+	css.innerHTML += ".cbs-chart-tabpanel .x-tool-expand-left {position:relative;top:-" + (size - 30) + ";}";
+	css.innerHTML += ".x-panel-body-default {border-style:none}";
+//	css.innerHTML += ".x-column-header-text {position:relative;top:-20px;}";
+//	css.innerHTML += ".x-column-header-trigger {top:-20px;}";
+	css.innerHTML += ".cbs-chart-tabpanel .x-tool-collapse-right {position:relative;top:1px}";
+//	css.innerHTML += ".x-grid-body {top:44px !important}";
+	
+	css.innerHTML += ".x-grid-cell-inner {height:30px !important;}";
+	css.innerHTML += ".x-column-header {height:30px !important;}";
+	
 	document.body.appendChild(css);
+	
 }
 
 var cbsPublisherTree = (function() {
